@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using TwitchLib.Api.Helix.Models.Entitlements;
+using TwitchLib.Api.Helix.Models.Raids;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
 {
@@ -116,6 +117,16 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                         
                 }
 
+            }
+            if (TarkovDataManager.MapData.TryGetValue(_mapId, out var map))
+            {
+                var filteredExfils = _isPMC ?
+                    map.Extracts.Where(x => x.IsShared || x.IsPmc) :
+                    map.Extracts.Where(x => !x.IsPmc);
+                foreach (var transit in map.Transits)
+                {
+                    list.Add(new TransitPoint(transit));
+                }
             }
 
             _exits = list;

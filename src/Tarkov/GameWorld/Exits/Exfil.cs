@@ -30,20 +30,171 @@ using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.Tarkov.Unity;
 using LoneEftDmaRadar.UI.Radar.Maps;
 using LoneEftDmaRadar.UI.Skia;
+using System.Text.RegularExpressions;
+using TwitchLib.Api.Helix.Models.Entitlements;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
 {
     public class Exfil : IExitPoint, IWorldEntity, IMapEntity, IMouseoverEntity
     {
-        public Exfil(TarkovDataManager.ExtractElement extract)
+        public EStatus Status { get; private set; } = EStatus.Closed;
+        public Exfil(ulong baseAddr, string exfilName, string mapId, bool IsPmc)
         {
-            Name = extract.Name;
-            _position = extract.Position.AsVector3();
+            exfilBase = baseAddr;
+            if (!TarkovDataManager.MapData.TryGetValue(mapId, out var mapData)) 
+            { 
+                return;
+            }
+            var extracts = (IsPmc
+                    ? mapData.Extracts.Where(x => x.IsShared || x.IsPmc)
+                    : mapData.Extracts.Where(x => !x.IsPmc))
+                    .ToList();
+
+            // Matching strategies (operating on filtered 'extracts'):
+            bool matchedAny = false;
+
+            // 1) exact (case-insensitive)
+            var exactMatches = extracts.Where(ep => !string.IsNullOrEmpty(exfilName) && ep.Name.Equals(exfilName, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (exactMatches.Any())
+            {
+                foreach (var ex in exactMatches)
+                {
+                    matchedAny = true;
+                    Name = ex.Name;
+                    _position = ex.Position.AsVector3();
+                }
+            }
+
+            // helpers
+            static string Normalize(string s) => new string((s ?? string.Empty).ToLowerInvariant().Where(char.IsLetterOrDigit).ToArray());
+            static string RemoveCommonPrefix(string s)
+            {
+                if (string.IsNullOrEmpty(s)) return s;
+                var prefixes = new[] { "exfil_", "exfil", "exit_", "customs_", "customs", "sniper_", "pmc_", "scav_" };
+                var lower = s.ToLowerInvariant();
+                foreach (var p in prefixes)
+                {
+                    if (lower.StartsWith(p))
+                        return s.Substring(p.Length);
+                }
+                return s;
+            }
+            static string InsertDashBetweenLettersAndDigits(string s)
+            {
+                if (string.IsNullOrEmpty(s)) return s;
+                return Regex.Replace(s, "([A-Za-z]+)(\\d+)", "$1-$2");
+            }
+
+            // 2) normalized alnum
+            if (!matchedAny && !string.IsNullOrEmpty(exfilName))
+            {
+                var normEx = Normalize(exfilName);
+                var normalizedMatches = extracts.Where(ep => Normalize(ep.Name).Equals(normEx)).ToList();
+                if (normalizedMatches.Any())
+                {
+                    foreach (var ex in normalizedMatches)
+                    {
+                        matchedAny = true;
+                        Name = ex.Name;
+                        _position = ex.Position.AsVector3();
+                    }
+                }
+                else
+                {
+                    // 3) remove prefixes / replace separators / insert dash
+                    var cleaned = RemoveCommonPrefix(exfilName).Replace('_', ' ').Replace('-', ' ');
+                    cleaned = InsertDashBetweenLettersAndDigits(cleaned);
+                    var normCleaned = Normalize(cleaned);
+                    var cleanedMatches = extracts.Where(ep => Normalize(RemoveCommonPrefix(ep.Name).Replace('_', ' ').Replace('-', ' ')).Equals(normCleaned)).ToList();
+                    if (cleanedMatches.Any())
+                    {
+                        foreach (var ex in cleanedMatches)
+                        {
+                            matchedAny = true;
+                            Name = ex.Name;
+                            _position = ex.Position.AsVector3();
+                        }
+                    }
+                }
+            }
+
+            // 3) hardcoded mapping fallback
+            if (!matchedAny)
+            {
+                var hardcodedMatches = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        { "customs_sniper_exit", "Railroad Passage (Flare)" },
+                        { "Factory Gate", "Friendship Bridge (Co-Op)" },
+                        { "South V-Ex", "Bridge V-Ex" },
+                        { "wood_sniper_exit", "Power Line Passage (Flare)" },
+                        { "Custom_scav_pmc", "Boiler Room Basement (Co-op)" },
+                    };
+                if (hardcodedMatches.TryGetValue(exfilName, out var targetExtractName))
+                {
+                    var hardcodedExtract = extracts.FirstOrDefault(ep => ep.Name.Equals(targetExtractName, StringComparison.OrdinalIgnoreCase));
+                    if (hardcodedExtract != null)
+                    {
+                        matchedAny = true;
+                        Name = hardcodedExtract.Name;
+                        _position = hardcodedExtract.Position.AsVector3();
+                    }
+                }
+            }
+
+            // Detailed diagnostics when nothing matched
+            if (!matchedAny)
+            {
+                var raw = exfilName ?? "<null>";
+                var norm = Normalize(raw);
+                var charCodes = string.Join(" ", raw.Select(c => ((int)c).ToString("X4")));
+                Debug.WriteLine($"[ExitManager] UNMATCHED memory exfil raw='{raw}' len={raw.Length} norm='{norm}' codes=[{charCodes}]");
+
+                foreach (var ep in extracts)
+                {
+                    var epName = ep.Name ?? "<null>";
+                    var epNorm = Normalize(epName);
+                    var exact = !string.IsNullOrEmpty(raw) && epName.Equals(raw, StringComparison.OrdinalIgnoreCase);
+                    var normEq = epNorm == norm;
+                    Debug.WriteLine($"[ExitManager] CompareExtract: '{epName}' len={epName.Length} norm='{epNorm}' exact={exact} normEq={normEq}");
+                }
+            }
+
+        }
+
+        public void Update(Enums.EExfiltrationStatus status)
+        {
+            /// Update Status
+            switch (status)
+            {
+                case Enums.EExfiltrationStatus.NotPresent:
+                    Status = EStatus.Closed;
+                    break;
+                case Enums.EExfiltrationStatus.UncompleteRequirements:
+                    Status = EStatus.Pending;
+                    break;
+                case Enums.EExfiltrationStatus.Countdown:
+                    Status = EStatus.Open;
+                    break;
+                case Enums.EExfiltrationStatus.RegularMode:
+                    Status = EStatus.Open;
+                    break;
+                case Enums.EExfiltrationStatus.Pending:
+                    Status = EStatus.Pending;
+                    break;
+                case Enums.EExfiltrationStatus.AwaitsManualActivation:
+                    Status = EStatus.Pending;
+                    break;
+                case Enums.EExfiltrationStatus.Hidden:
+                    Status = EStatus.Closed;
+                    break;
+            }
         }
 
         public string Name { get; }
 
         #region Interfaces
+
+        public ulong exfilBase { get; init; }
 
         private readonly Vector3 _position;
         public ref readonly Vector3 Position => ref _position;
@@ -78,11 +229,20 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
 
         public void DrawMouseover(SKCanvas canvas, EftMapParams mapParams, LocalPlayer localPlayer)
         {
+            List<string> lines = new();
             var exfilName = Name;
             exfilName ??= "unknown";
-            Position.ToMapPos(mapParams.Map).ToZoomedPos(mapParams).DrawMouseoverText(canvas, exfilName);
+            lines.Add($"{exfilName} ({Status.ToString()})");
+            Position.ToMapPos(mapParams.Map).ToZoomedPos(mapParams).DrawMouseoverText(canvas, string.Join("\n", lines));
         }
 
         #endregion
+
+        public enum EStatus
+        {
+            [Description(nameof(Open))] Open,
+            [Description(nameof(Pending))] Pending,
+            [Description(nameof(Closed))] Closed
+        }
     }
 }

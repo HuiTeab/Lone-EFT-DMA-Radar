@@ -26,14 +26,15 @@ SOFTWARE.
  *
 */
 
+using LoneEftDmaRadar.Tarkov.GameWorld.Player;
+using LoneEftDmaRadar.Tarkov.Unity.Collections;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
-using LoneEftDmaRadar.Tarkov.GameWorld.Player;
-using LoneEftDmaRadar.Tarkov.Unity.Collections;
+using TwitchLib.Api.Helix.Models.Entitlements;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
 {
@@ -79,7 +80,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[ExitManager] Memory read failed during Init: {ex}");
+                Debug.WriteLine($"[ExitManager] Init Error: {ex}");
                 _exits = list;
                 return;
             }
@@ -89,9 +90,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
             {
                 var namePtr = Memory.ReadPtrChain(exfilAddr, false, new[] { Offsets.ExfiltrationPoint.Settings, Offsets.ExitTriggerSettings.Name });
                 var exfilName = Memory.ReadUnicodeString(namePtr)?.Trim();
-
-                bool usable = false;
-
                 if (_isPMC)
                 {
                     ulong eligibleEntryPointsArray = Memory.ReadPtr(exfilAddr + Offsets.ExfiltrationPoint.EligibleEntryPoints, false);
@@ -101,172 +99,28 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                         string entryPointIDStr = Memory.ReadUnicodeString(eligibleEntryPointAddr);
                         if (!string.IsNullOrEmpty(entryPointIDStr) && entryPointIDStr.Equals(entryPointName, StringComparison.OrdinalIgnoreCase))
                         {
-                            usable = true;
-                            break;
+                            var exfil = new Exfil(exfilAddr, exfilName, _mapId, _isPMC);
+                            list.Add(exfil);
                         }
                     }
-                    //Debug.WriteLine($"[ExitManager] PMC exfil '{exfilName}' usable={usable}");
                 }
                 else
                 {
                     var eligibleIdsAddr = Memory.ReadPtr(exfilAddr + Offsets.ExfiltrationPoint.EligibleIds, false);
                     using var eligibleIdsList = UnityList<ulong>.Create(eligibleIdsAddr, false);
-                    usable = eligibleIdsList.Count > 0;
-                    //Debug.WriteLine($"[ExitManager] Scav exfil '{exfilName}' eligibleIdsCount={eligibleIdsList.Count} usable={usable}");
-                }
-
-                if (!usable)
-                    continue;
-
-                if (!TarkovDataManager.MapData.TryGetValue(_mapId, out var mapData))
-                    continue;
-
-                // Filter extracts by PMC/scav/shared to reduce comparison set
-                var extracts = (_isPMC
-                    ? mapData.Extracts.Where(x => x.IsShared || x.IsPmc)
-                    : mapData.Extracts.Where(x => !x.IsPmc))
-                    .ToList();
-
-                //Debug.WriteLine($"[ExitManager] Adding Exfil: {exfilName} (isPMC={_isPMC})");
-
-                // Matching strategies (operating on filtered 'extracts'):
-                bool matchedAny = false;
-
-                // 1) exact (case-insensitive)
-                var exactMatches = extracts.Where(ep => !string.IsNullOrEmpty(exfilName) && ep.Name.Equals(exfilName, StringComparison.OrdinalIgnoreCase)).ToList();
-                if (exactMatches.Any())
-                {
-                    foreach (var ex in exactMatches) list.Add(new Exfil(ex));
-                    matchedAny = true;
-                }
-
-                // helpers
-                static string Normalize(string s) => new string((s ?? string.Empty).ToLowerInvariant().Where(char.IsLetterOrDigit).ToArray());
-                static string RemoveCommonPrefix(string s)
-                {
-                    if (string.IsNullOrEmpty(s)) return s;
-                    var prefixes = new[] { "exfil_", "exfil", "exit_", "customs_", "customs", "sniper_", "pmc_", "scav_" };
-                    var lower = s.ToLowerInvariant();
-                    foreach (var p in prefixes)
+                    if (eligibleIdsList.Count != 0)
                     {
-                        if (lower.StartsWith(p))
-                            return s.Substring(p.Length);
+                        var exfil = new Exfil(exfilAddr, exfilName, _mapId, _isPMC);
+                        list.Add(exfil);
                     }
-                    return s;
-                }
-                static string InsertDashBetweenLettersAndDigits(string s)
-                {
-                    if (string.IsNullOrEmpty(s)) return s;
-                    return Regex.Replace(s, "([A-Za-z]+)(\\d+)", "$1-$2");
+                        
                 }
 
-                // 2) normalized alnum
-                if (!matchedAny && !string.IsNullOrEmpty(exfilName))
-                {
-                    var normEx = Normalize(exfilName);
-                    var normalizedMatches = extracts.Where(ep => Normalize(ep.Name).Equals(normEx)).ToList();
-                    if (normalizedMatches.Any())
-                    {
-                        foreach (var ex in normalizedMatches) list.Add(new Exfil(ex));
-                        matchedAny = true;
-                    }
-                    else
-                    {
-                        // 3) remove prefixes / replace separators / insert dash
-                        var cleaned = RemoveCommonPrefix(exfilName).Replace('_', ' ').Replace('-', ' ');
-                        cleaned = InsertDashBetweenLettersAndDigits(cleaned);
-                        var normCleaned = Normalize(cleaned);
-                        var cleanedMatches = extracts.Where(ep => Normalize(RemoveCommonPrefix(ep.Name).Replace('_', ' ').Replace('-', ' ')).Equals(normCleaned)).ToList();
-                        if (cleanedMatches.Any())
-                        {
-                            foreach (var ex in cleanedMatches) list.Add(new Exfil(ex));
-                            matchedAny = true;
-                        }
-                    }
-                }
-
-                // 4) fuzzy fallback (Levenshtein on normalized strings)
-                if (!matchedAny && !string.IsNullOrEmpty(exfilName))
-                {
-                    var normEx = Normalize(exfilName);
-                    var candidates = extracts.Select(ep => new { Ep = ep, Norm = Normalize(ep.Name) }).ToList();
-                    var best = candidates.Select(c => new { c.Ep, c.Norm, Dist = LevenshteinDistance(normEx, c.Norm) })
-                                         .OrderBy(x => x.Dist)
-                                         .FirstOrDefault();
-                    if (best != null && best.Dist <= 2) // threshold (tweak as needed)
-                    {
-                        list.Add(new Exfil(best.Ep));
-                        matchedAny = true;
-                    }
-                }
-
-                // 5) hardcoded mapping fallback
-                if (!matchedAny)
-                {
-                    var hardcodedMatches = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                    {
-                        { "customs_sniper_exit", "Railroad Passage (Flare)" },
-                        { "Factory Gate", "Friendship Bridge (Co-Op)" },
-                        { "South V-Ex", "Bridge V-Ex" },
-                        { "wood_sniper_exit", "Power Line Passage (Flare)" },
-                        { "Custom_scav_pmc", "Boiler Room Basement (Co-op)" },
-                    };
-                    if (hardcodedMatches.TryGetValue(exfilName, out var targetExtractName))
-                    {
-                        var hardcodedExtract = extracts.FirstOrDefault(ep => ep.Name.Equals(targetExtractName, StringComparison.OrdinalIgnoreCase));
-                        if (hardcodedExtract != null)
-                        {
-                            list.Add(new Exfil(hardcodedExtract));
-                            matchedAny = true;
-                        }
-                    }
-                }
-                else
-                {
-                    Debug.WriteLine($"[ExitManager] No match for memory exfil '{exfilName}'.");
-                }
-            }
-
-            // Add transits
-            if (TarkovDataManager.MapData.TryGetValue(_mapId, out var Transits))
-            {
-                foreach (var transit in Transits.Transits)
-                {
-                    list.Add(new TransitPoint(transit));
-                }
             }
 
             _exits = list;
         }
 
-        private static int LevenshteinDistance(string a, string b)
-        {
-            if (a == null) a = string.Empty;
-            if (b == null) b = string.Empty;
-            var lenA = a.Length;
-            var lenB = b.Length;
-            if (lenA == 0) return lenB;
-            if (lenB == 0) return lenA;
-
-            var v0 = new int[lenB + 1];
-            var v1 = new int[lenB + 1];
-
-            for (int j = 0; j <= lenB; j++) v0[j] = j;
-
-            for (int i = 0; i < lenA; i++)
-            {
-                v1[0] = i + 1;
-                for (int j = 0; j < lenB; j++)
-                {
-                    int cost = a[i] == b[j] ? 0 : 1;
-                    v1[j + 1] = Math.Min(Math.Min(v1[j] + 1, v0[j + 1] + 1), v0[j] + cost);
-                }
-                var tmp = v0;
-                v0 = v1;
-                v1 = tmp;
-            }
-            return v0[lenB];
-        }
 
         public void Refresh()
         {
@@ -275,6 +129,26 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                 if (_exits is null) // Initialize
                     Init();
                 ArgumentNullException.ThrowIfNull(_exits, nameof(_exits));
+                var map = Memory.CreateScatterMap();
+                var round1 = map.AddRound();
+
+                for (int ix = 0; ix < _exits.Count; ix++)
+                {
+                    int i = ix;
+                    var entry = _exits[i];
+                    if (entry is Exfil exfil)
+                    {
+                        round1.PrepareReadValue<int>(exfil.exfilBase + Offsets.ExfiltrationPoint._status);
+                        round1.Completed += (sender, s1) =>
+                        {
+                            if (s1.ReadValue<int>(exfil.exfilBase + Offsets.ExfiltrationPoint._status, out var exfilStatus))
+                            {
+                                exfil.Update((Enums.EExfiltrationStatus)exfilStatus);
+                            }
+                        };
+                    }
+                }
+                map.Execute();
             }
             catch (Exception ex)
             {

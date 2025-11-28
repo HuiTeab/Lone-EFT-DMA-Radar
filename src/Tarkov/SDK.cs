@@ -187,7 +187,8 @@ namespace SDK
 
         public readonly partial struct ExfiltrationPoint //EFT.Interactive.ExfiltrationPoint
         {
-            public const uint Settings = 0x98;//EFT.Interactive.ExitTriggerSettings
+            public const uint _status = 0x58; // EFT.Interactive.EExfiltrationStatus
+            public const uint Settings = 0x98;// EFT.Interactive.ExitTriggerSettings
             public const uint EligibleEntryPoints = 0xC0; // [C0] EligibleEntryPoints : string[]
             public const uint EligibleIds = 0xF8; //[F8] EligibleIds : System.Collections.Generic.List<string>
         }
@@ -266,6 +267,17 @@ namespace SDK
             Exploding = 3,
             Exploded = 4,
             Inert = 5,
+        }
+
+        public enum EExfiltrationStatus
+        {
+            NotPresent = 1,
+            UncompleteRequirements = 2,
+            Countdown = 3,
+            RegularMode = 4,
+            Pending = 5,
+            AwaitsManualActivation = 6,
+            Hidden = 7,
         }
     }
 }

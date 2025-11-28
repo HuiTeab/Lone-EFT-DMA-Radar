@@ -109,7 +109,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 _rgtPlayers = new RegisteredPlayers(rgtPlayersAddr, this);
                 ArgumentOutOfRangeException.ThrowIfLessThan(_rgtPlayers.GetPlayerCount(), 1, nameof(_rgtPlayers));
                 Loot = new(localGameWorld);
-                _exfilManager = new(localGameWorld, mapID, _rgtPlayers.LocalPlayer.IsPmc);
+                _exfilManager = new(localGameWorld, mapID, _rgtPlayers.LocalPlayer);
                 _explosivesManager = new(localGameWorld);
             }
             catch

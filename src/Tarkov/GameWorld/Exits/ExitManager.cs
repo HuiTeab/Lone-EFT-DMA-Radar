@@ -26,6 +26,8 @@ SOFTWARE.
  *
 */
 
+using LoneEftDmaRadar.Tarkov.Unity.Collections;
+
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
 {
     /// <summary>
@@ -33,27 +35,122 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
     /// </summary>
     public sealed class ExitManager : IReadOnlyCollection<IExitPoint>
     {
-        private readonly IReadOnlyList<IExitPoint> _exits;
+        private IReadOnlyList<IExitPoint> _exits;
 
-        public ExitManager(string mapId, bool isPMC)
+        private readonly ulong _localGameWorld;
+        private readonly string _mapId;
+        private readonly bool _isPMC;
+        private ulong exfilArrayAddr;
+        private ulong secretExfilArrayAddr;
+        private ulong entryPointPtr;
+        public ExitManager(ulong localGameWorld, string mapId, bool isPMC)
+        {
+            _localGameWorld = localGameWorld;
+            _isPMC = isPMC;
+            _mapId = mapId;
+        }
+
+        private void Init()
         {
             var list = new List<IExitPoint>();
-            if (TarkovDataManager.MapData.TryGetValue(mapId, out var map))
+            var map = Memory.CreateScatterMap();
+            var round1 = map.AddRound();
+            var round2 = map.AddRound();
+            var round3 = map.AddRound();
+            var round4 = map.AddRound();
+            round1.PrepareReadPtr(_localGameWorld + Offsets.GameWorld.ExfiltrationController);
+            round1.PrepareReadPtr(_localGameWorld + Offsets.GameWorld.MainPlayer);
+            round1.Completed += (sender, s1) =>
             {
-                var filteredExfils = isPMC ?
-                    map.Extracts.Where(x => x.IsShared || x.IsPmc) :
-                    map.Extracts.Where(x => !x.IsPmc);
-                foreach (var exfil in filteredExfils)
+                if (s1.ReadPtr(_localGameWorld + Offsets.GameWorld.ExfiltrationController, out var exfiltrationController) &&
+                    s1.ReadPtr(_localGameWorld + Offsets.GameWorld.MainPlayer, out var mainPlayer))
                 {
-                    list.Add(new Exfil(exfil));
+                    round2.PrepareReadPtr(exfiltrationController + (_isPMC ? Offsets.ExfiltrationController.ExfiltrationPoints : Offsets.ExfiltrationController.ScavExfiltrationPoints));
+                    round2.PrepareReadPtr(exfiltrationController + Offsets.ExfiltrationController.SecretExfiltrationPoints);
+                    round2.PrepareReadPtr(mainPlayer + Offsets.Player.Profile);
+                    round2.Completed += (sender, s2) =>
+                    {
+                        if (s2.ReadPtr(exfiltrationController + (_isPMC ? Offsets.ExfiltrationController.ExfiltrationPoints : Offsets.ExfiltrationController.ScavExfiltrationPoints), out var exfiltrationPoints) &&
+                            s2.ReadPtr(mainPlayer + Offsets.Player.Profile, out var profile) &&
+                            s2.ReadPtr(exfiltrationController + Offsets.ExfiltrationController.SecretExfiltrationPoints, out var secretExfiltrationPoints))
+
+                        {
+                            exfilArrayAddr = exfiltrationPoints;
+                            secretExfilArrayAddr = secretExfiltrationPoints;
+
+                            round3.PrepareReadPtr(profile + Offsets.Profile.Info);
+                            round3.Completed += (sender, s3) =>
+                            {
+                                if (s3.ReadPtr(profile + Offsets.Profile.Info, out var info))
+                                {
+
+                                    round4.PrepareReadPtr(info + Offsets.PlayerInfo.EntryPoint);
+
+                                    round4.Completed += (sender, s4) =>
+                                    {
+                                        if (s4.ReadPtr(info + Offsets.PlayerInfo.EntryPoint, out var entryPoint))
+                                        {
+                                            entryPointPtr = entryPoint;
+                                        }
+                                    };
+                                }
+                            };
+                        }
+                    };
                 }
-                foreach (var transit in map.Transits)
+            };
+            map.Execute();
+            map.Dispose();
+
+            var entryPointName = Memory.ReadUnicodeString(entryPointPtr);
+            using var exfilArray = UnityArray<ulong>.Create(exfilArrayAddr, false);
+            foreach (var exfilAddr in exfilArray)
+            {
+                var namePtr = Memory.ReadPtrChain(exfilAddr, false, new[] { Offsets.ExfiltrationPoint.Settings, Offsets.ExitTriggerSettings.Name});
+                var exfilName = Memory.ReadUnicodeString(namePtr)?.Trim();
+                
+                ulong eligibleEntryPointsArray = Memory.ReadPtr(exfilAddr + Offsets.ExfiltrationPoint.EligibleEntryPoints, false);
+                using var eligibleEntryPoints = UnityArray<ulong>.Create(eligibleEntryPointsArray, false);
+                foreach (var eligibleEntryPointAddr in eligibleEntryPoints)
+                {
+                    string entryPointIDStr = Memory.ReadUnicodeString(eligibleEntryPointAddr);
+                    if (entryPointIDStr.Equals(entryPointName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (TarkovDataManager.MapData.TryGetValue(_mapId, out var mapData))
+                        {
+                            //Debug.WriteLine($"[ExitManager] Adding Exfil: {exfilName} for Entry Point: {entryPointName}");
+                            var filteredExfils = mapData.Extracts.Where(ep => ep.Name.Equals(exfilName, StringComparison.OrdinalIgnoreCase));
+                            foreach (var exfil in filteredExfils)
+                            {
+                                list.Add(new Exfil(exfil));
+                            }   
+                        }
+                    }
+                }
+            }
+            if (TarkovDataManager.MapData.TryGetValue(_mapId, out var Transits))
+            {
+                foreach (var transit in Transits.Transits)
                 {
                     list.Add(new TransitPoint(transit));
                 }
             }
+             _exits = list;
 
-            _exits = list;
+        }
+
+        public void Refresh()
+        {
+            try
+            {
+                if (_exits is null) // Initialize
+                    Init();
+                ArgumentNullException.ThrowIfNull(_exits, nameof(_exits));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ExitManager] Refresh Error: {ex}");
+            }
         }
 
         #region IReadOnlyCollection

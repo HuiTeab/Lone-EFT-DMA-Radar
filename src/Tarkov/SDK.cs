@@ -11,7 +11,9 @@ namespace SDK
             public const uint MainPlayer = 0x1E0; // EFT.Player
             public const uint SynchronizableObjectLogicProcessor = 0x218; // EFT.SynchronizableObjects.SynchronizableObjectLogicProcessor
             public const uint Grenades = 0x258; // DictionaryListHydra<int, Throwable>
+            public const uint ExfiltrationController = 0x48; //ExfiltrationController
         }
+
 
         public readonly partial struct SynchronizableObject
         {
@@ -129,6 +131,7 @@ namespace SDK
             public const uint Side = 0x48; // [HUMAN] Int32
             public const uint RegistrationDate = 0x4C; // int
             public const uint GroupId = 0x50; // string
+            public const uint EntryPoint = 0x28; // string
         }
 
         public readonly partial struct MovementContext
@@ -173,6 +176,29 @@ namespace SDK
         {
             public const uint SkeletonRootJoint = 0x30; // Diz.Skinning.Skeleton
         }
+
+        public readonly partial struct ExfiltrationController
+        {
+            public const uint SecretExfilitranionController = 0x18; // EFT.Interactive.SecretExfiltrations.SecretExfilitranionController
+            public const uint ExfiltrationPoints = 0x20; // EFT.Interactive.ExfiltrationPoint[]
+            public const uint ScavExfiltrationPoints = 0x28; // EFT.Interactive.ScavExfiltrationPoint[]
+            public const uint SecretExfiltrationPoints = 0x30; // EFT.Interactive.SecretExfiltrations.SecretExfiltrationPoint[]
+        }
+
+        public readonly partial struct ExfiltrationPoint //EFT.Interactive.ExfiltrationPoint
+        {
+            public const uint Settings = 0x98;//EFT.Interactive.ExitTriggerSettings
+            public const uint EligibleEntryPoints = 0xC0; // [C0] EligibleEntryPoints : string[]
+            public const uint EligibleIds = 0xF8; //[F8] EligibleIds : System.Collections.Generic.List<string>
+        }
+
+        public readonly partial struct ExitTriggerSettings
+        {
+            public const uint Id = 0x10; // string
+            public const uint Name = 0x18; // string
+            public const uint EntryPoints = 0x40; // string
+        }
+
     }
 
     public readonly partial struct Enums

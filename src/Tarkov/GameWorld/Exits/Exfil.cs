@@ -125,14 +125,53 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
             {
                 var hardcodedMatches = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                     {
+                        //Factory
+                        //Customs
                         { "customs_sniper_exit", "Railroad Passage (Flare)" },
                         { "Factory Gate", "Friendship Bridge (Co-Op)" },
+                        //Woods
                         { "South V-Ex", "Bridge V-Ex" },
                         { "wood_sniper_exit", "Power Line Passage (Flare)" },
                         { "Custom_scav_pmc", "Boiler Room Basement (Co-op)" },
+                        //Interchange
                         { "SE Exfil", "Emercom Checkpoint" },
                         { "NW Exfil", "Railway Exfil" },
                         { "Interchange Cooperation", "Scav Camp (Co-Op)" },
+                        //Reserve
+                        { "EXFIL_Train", "Armored Train" },
+                        { "EXFIL_Bunker_D2", "D-2" },
+                        { "EXFIL_Bunker", "Bunker Hermetic Door" },
+                        { "Alpinist", "Cliff Descent" },
+                        { "EXFIL_ScavCooperation", "Scav Lands (Co-Op)" },
+                        { "EXFIL_vent", "Sewer Manhole" },
+                        //Lighthouse
+                        { "V-Ex_light", "Road to Military Base V-Ex" },
+                        { "tunnel_shared", "Side Tunnel (Co-Op)" },
+                        { "Alpinist_light", "Mountain Pass" },
+                        { "Shorl_free", "Path to Shoreline" },
+                        { "Nothern_Checkpoint", "Northern Checkpoint" },
+                        { "Coastal_South_Road", "Southern Road" },
+                        //Shorline
+                        { "Shorl_V-Ex", "Road to North V-Ex" },
+                        { "Road_at_railbridge", "Railway Bridge" },
+                        { "Lighthouse_pass", "Path to Lighthouse" },
+                        { "Smugglers_Trail_coop", "Smugglers' Path (Co-op)" },
+                        { "RedRebel_alp", "Climber's Trail" },
+                        //Ground Zero
+                        { "Sandbox_VExit", "Police Cordon V-Ex" },
+                        { "Unity_free_exit", "Nakatani Basement Stairs" },
+                        { "Scav_coop_exit", "Scav Checkpoint (Co-op)" },
+                        { "Sniper_exit", "Mira Ave (Flare)" },
+                        //Streets of Tarkov
+                        { "E8_yard", "Courtyard" },
+                        { "E7_car", "Primorsky Ave Taxi V-Ex" },
+                        { "E1", "Damaged House" },
+                        { "E9_sniper", "Klimov Street (Flare)" },
+                        { "E7", "Expo Checkpoint" },
+                        { "Exit_E10_coop", "Pinewood Basement (Co-Op)" },
+                        { "E6", "Sewer River" },
+                        //The Lab
+
                     };
                 if (hardcodedMatches.TryGetValue(exfilName, out var targetExtractName))
                 {

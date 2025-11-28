@@ -109,7 +109,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                 {
                     var eligibleIdsAddr = Memory.ReadPtr(exfilAddr + Offsets.ExfiltrationPoint.EligibleIds, false);
                     using var eligibleIdsList = UnityList<ulong>.Create(eligibleIdsAddr, false);
-                    if (eligibleIdsList.Count != 0)
+                    if (eligibleIdsList.Count > 0)
                     {
                         var exfil = new Exfil(exfilAddr, exfilName, _mapId, _isPMC);
                         list.Add(exfil);

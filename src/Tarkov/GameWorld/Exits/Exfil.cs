@@ -37,14 +37,6 @@ using System.ComponentModel;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
 {
-    // PSEUDOCODE / PLAN:
-    // - Ensure color constants used for exfil paint are valid by using SkiaSharp's SKColors.
-    // - Ensure a local 'paint' reference is available to pass to canvas draw calls.
-    // - Replace undefined identifiers 'green', 'yellow', 'red' with 'SKColors.Green', 'SKColors.Yellow', 'SKColors.Red'.
-    // - Uncomment and use 'var paint = SKPaints.PaintExfil;' so draw calls reference a valid SKPaint.
-    // - Keep existing logic for selecting shape (arrow up/down or circle) and stroke width.
-    // - No behavior changes besides fixing undefined names and ensuring the 'paint' variable is defined.
-    // - Maintain file formatting and existing using directives.
     public class Exfil : IExitPoint, IWorldEntity, IMapEntity, IMouseoverEntity
     {
         public EStatus Status { get; private set; } = EStatus.Closed;
@@ -138,6 +130,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                         { "South V-Ex", "Bridge V-Ex" },
                         { "wood_sniper_exit", "Power Line Passage (Flare)" },
                         { "Custom_scav_pmc", "Boiler Room Basement (Co-op)" },
+                        { "SE Exfil", "Emercom Checkpoint" },
+                        { "NW Exfil", "Railway Exfil" },
+                        { "Interchange Cooperation", "Scav Camp (Co-Op)" },
                     };
                 if (hardcodedMatches.TryGetValue(exfilName, out var targetExtractName))
                 {

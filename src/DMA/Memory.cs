@@ -570,6 +570,100 @@ namespace LoneEftDmaRadar.DMA
 
         #endregion
 
+        #region Write Methods
+
+        public static void WriteValue<T>(LocalGameWorld game, ulong addr, T value) where T : unmanaged
+        {
+            //if (!game.IsSafeToWriteMem)
+            //    throw new Exception("Not safe to write!");
+            WriteValue(addr, value);
+        }
+
+        public static void WriteValue<T>(ulong addr, T value) where T : unmanaged
+        {
+            if (!_vmm.MemWriteValue(_pid, addr, value))
+                throw new VmmException("Memory Write Failed!");
+        }
+        public static unsafe void WriteValueEnsure<T>(ulong addr, T value)
+            where T : unmanaged
+        {
+            int cb = sizeof(T);
+            try
+            {
+                var b1 = new ReadOnlySpan<byte>(&value, cb);
+                const int retryCount = 3;
+                for (int i = 0; i < retryCount; i++)
+                {
+                    try
+                    {
+                        WriteValue(addr, value);
+                        Thread.SpinWait(5);
+                        T temp = ReadValue<T>(addr, false);
+                        var b2 = new ReadOnlySpan<byte>(&temp, cb);
+                        if (b1.SequenceEqual(b2))
+                        {
+                            return; // SUCCESS
+                        }
+                    }
+                    catch { }
+                }
+                throw new VmmException("Memory Write Failed!");
+            }
+            catch (VmmException)
+            {
+                throw;
+            }
+        }
+        public static unsafe void WriteBuffer<T>(ulong addr, Span<T> buffer)
+            where T : unmanaged
+        {
+            //if (!MemWrites.Enabled)
+            //    throw new Exception("Memory Writing is Disabled!");
+            try
+            {
+                if (!_vmm.MemWriteSpan(_pid, addr, buffer))
+                    throw new VmmException("Memory Write Failed!");
+            }
+            catch (VmmException)
+            {
+                throw;
+            }
+        }
+
+        public static void WriteBufferEnsure<T>(ulong addr, Span<T> buffer)
+            where T : unmanaged
+        {
+            int cb = SizeChecker<T>.Size * buffer.Length;
+            try
+            {
+                Span<byte> temp = cb > 0x1000 ? new byte[cb] : stackalloc byte[cb];
+                ReadOnlySpan<byte> b1 = MemoryMarshal.Cast<T, byte>(buffer);
+                const int retryCount = 3;
+                for (int i = 0; i < retryCount; i++)
+                {
+                    try
+                    {
+                        WriteBuffer(addr, buffer);
+                        Thread.SpinWait(5);
+                        temp.Clear();
+                        ReadSpan(addr, temp, false);
+                        if (temp.SequenceEqual(b1))
+                        {
+                            return; // SUCCESS
+                        }
+                    }
+                    catch { }
+                }
+                throw new VmmException("Memory Write Failed!");
+            }
+            catch (VmmException)
+            {
+                throw;
+            }
+        }
+
+        #endregion
+
         #region Misc
 
         /// <summary>
@@ -678,5 +772,20 @@ namespace LoneEftDmaRadar.DMA
         public static ulong AlignAddress(ulong address) => (address + 7) & ~7ul;
 
         #endregion
+    }
+
+    public static class SizeChecker<T>
+    {
+        /// <summary>
+        /// Size of this Type.
+        /// </summary>
+        public static readonly int Size = GetSize();
+
+        private static int GetSize()
+        {
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+                throw new NotSupportedException(typeof(T).ToString());
+            return Unsafe.SizeOf<T>();
+        }
     }
 }

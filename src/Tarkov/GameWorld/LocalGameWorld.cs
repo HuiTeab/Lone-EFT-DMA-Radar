@@ -28,6 +28,7 @@ SOFTWARE.
 
 using LoneEftDmaRadar.Misc;
 using LoneEftDmaRadar.Misc.Workers;
+using LoneEftDmaRadar.Tarkov.Features.MemWrites;
 using LoneEftDmaRadar.Tarkov.GameWorld.Exits;
 using LoneEftDmaRadar.Tarkov.GameWorld.Explosives;
 using LoneEftDmaRadar.Tarkov.GameWorld.Loot;
@@ -55,9 +56,11 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
         private readonly RegisteredPlayers _rgtPlayers;
         private readonly ExitManager _exfilManager;
         private readonly ExplosivesManager _explosivesManager;
+        private readonly MemWritesManager _memWritesManager;
         private readonly WorkerThread _t1;
         private readonly WorkerThread _t2;
         private readonly WorkerThread _t3;
+        private readonly WorkerThread _t4;
 
         /// <summary>
         /// Map ID of Current Map.
@@ -70,7 +73,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
         public IReadOnlyCollection<IExitPoint> Exits => _exfilManager;
         public LocalPlayer LocalPlayer => _rgtPlayers?.LocalPlayer;
         public LootManager Loot { get; }
-
         private LocalGameWorld() { }
 
         /// <summary>
@@ -111,6 +113,17 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 Loot = new(localGameWorld);
                 _exfilManager = new(localGameWorld, mapID, _rgtPlayers.LocalPlayer);
                 _explosivesManager = new(localGameWorld);
+
+                _memWritesManager = new MemWritesManager();
+
+                // Add new worker thread in constructor
+                _t4 = new WorkerThread()
+                {
+                    Name = "MemWrites Worker",
+                    ThreadPriority = ThreadPriority.Normal,
+                    SleepDuration = TimeSpan.FromMilliseconds(100)
+                };
+                _t4.PerformWork += MemWritesWorker_PerformWork;
             }
             catch
             {
@@ -127,6 +140,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
             _t1.Start();
             _t2.Start();
             _t3.Start();
+            _t4.Start();
         }
 
         /// <summary>
@@ -344,6 +358,35 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
         }
 
         #endregion
+        #region MemWrites Thread T4
+        /// <summary>
+        ///     
+        private void MemWritesWorker_PerformWork(object sender, WorkerThreadArgs e)
+        {
+            try
+            {
+                if (!App.Config.MemWrites.Enabled)
+                {
+                    Thread.Sleep(100);
+                    return;
+                }
+
+                var localPlayer = LocalPlayer;
+                if (localPlayer == null)
+                {
+                    Thread.Sleep(50);
+                    return;
+                }
+
+                _memWritesManager.Apply(localPlayer);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MemWritesWorker] Error: {ex}");
+            }
+        }
+
+        #endregion
 
         #region BTR Vehicle
 
@@ -381,6 +424,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 _t1?.Dispose();
                 _t2?.Dispose();
                 _t3?.Dispose();
+                _t4?.Dispose();
             }
         }
 

@@ -128,6 +128,10 @@ namespace LoneEftDmaRadar
         [JsonPropertyName("infoWidget")]
         public InfoWidgetConfig InfoWidget { get; private set; } = new();
 
+        [JsonInclude]
+        [JsonPropertyName("memWrites")]
+        public MemWritesConfig MemWrites { get; private set; } = new();
+
         /// <summary>
         /// Player Watchlist Collection.
         /// ** ONLY USE FOR BINDING **
@@ -762,5 +766,15 @@ namespace LoneEftDmaRadar
         /// </summary>
         [JsonPropertyName("tickRate")]
         public string TickRate { get; set; } = "60";
+    }
+
+    public sealed class MemWritesConfig
+    {
+        public bool Enabled { get; set; } = false;
+        public bool TestEnabled { get; set; } = false;
+        //public float NoRecoilAmount { get; set; } = 80f;
+        //public float NoSwayAmount { get; set; } = 80f;
+        //public bool InfiniteStaminaEnabled { get; set; } = false;
+        //public bool MemoryAimEnabled { get; set; } = false;
     }
 }

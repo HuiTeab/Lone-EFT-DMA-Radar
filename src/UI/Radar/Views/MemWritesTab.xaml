@@ -65,8 +65,8 @@
             <!-- -->
             <GroupBox Header="? " Margin="0,0,0,15">
                 <StackPanel Margin="10" IsEnabled="{Binding Enabled}">
-                    <CheckBox Content="Enable ?" 
-                              IsChecked="{Binding TestEnabled, Mode=TwoWay}" 
+                    <CheckBox Content="Enable ThermalVision"
+                              IsChecked="{Binding ThermalEnabled, Mode=TwoWay}" 
                               FontWeight="Bold"
                               Margin="0,5,0,10"/>
 

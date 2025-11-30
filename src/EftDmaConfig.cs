@@ -771,10 +771,6 @@ namespace LoneEftDmaRadar
     public sealed class MemWritesConfig
     {
         public bool Enabled { get; set; } = false;
-        public bool TestEnabled { get; set; } = false;
-        //public float NoRecoilAmount { get; set; } = 80f;
-        //public float NoSwayAmount { get; set; } = 80f;
-        //public bool InfiniteStaminaEnabled { get; set; } = false;
-        //public bool MemoryAimEnabled { get; set; } = false;
+        public bool ThermalEnabled { get; set; } = false;
     }
 }

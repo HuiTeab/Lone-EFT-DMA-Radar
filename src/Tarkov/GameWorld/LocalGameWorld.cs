@@ -29,6 +29,7 @@ SOFTWARE.
 using LoneEftDmaRadar.Misc;
 using LoneEftDmaRadar.Misc.Workers;
 using LoneEftDmaRadar.Tarkov.Features.MemWrites;
+using LoneEftDmaRadar.Tarkov.GameWorld.Camera;
 using LoneEftDmaRadar.Tarkov.GameWorld.Exits;
 using LoneEftDmaRadar.Tarkov.GameWorld.Explosives;
 using LoneEftDmaRadar.Tarkov.GameWorld.Loot;
@@ -57,6 +58,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
         private readonly ExitManager _exfilManager;
         private readonly ExplosivesManager _explosivesManager;
         private readonly MemWritesManager _memWritesManager;
+        private readonly CameraManager _cameraManager;
         private readonly WorkerThread _t1;
         private readonly WorkerThread _t2;
         private readonly WorkerThread _t3;
@@ -282,6 +284,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
             }
 
             using var scatter = Memory.CreateScatter(VmmFlags.NOCACHE);
+
+
             foreach (var player in players)
             {
                 player.OnRealtimeLoop(scatter);

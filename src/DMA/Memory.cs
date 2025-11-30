@@ -30,6 +30,7 @@ global using LoneEftDmaRadar.DMA;
 using Collections.Pooled;
 using LoneEftDmaRadar.Misc;
 using LoneEftDmaRadar.Tarkov.GameWorld;
+using LoneEftDmaRadar.Tarkov.GameWorld.Camera;
 using LoneEftDmaRadar.Tarkov.GameWorld.Exits;
 using LoneEftDmaRadar.Tarkov.GameWorld.Explosives;
 using LoneEftDmaRadar.Tarkov.GameWorld.Loot;
@@ -70,6 +71,8 @@ namespace LoneEftDmaRadar.DMA
         public static LocalPlayer LocalPlayer => Game?.LocalPlayer;
         public static LootManager Loot => Game?.Loot;
         public static LocalGameWorld Game { get; private set; }
+        public static CameraManager CameraManager { get; internal set; }
+        private static CameraManager _cameraManager;
 
         internal static async Task ModuleInitAsync()
         {
@@ -99,7 +102,7 @@ namespace LoneEftDmaRadar.DMA
                             Debug.WriteLine("[DMA] No MemMap, attempting to generate...");
                             _vmm = new Vmm(args: initArgs)
                             {
-                                EnableMemoryWriting = false
+                                EnableMemoryWriting = true
                             };
                             _ = _vmm.GetMemoryMap(
                                 applyMap: true,
@@ -113,7 +116,7 @@ namespace LoneEftDmaRadar.DMA
                     }
                     _vmm ??= new Vmm(args: initArgs)
                     {
-                        EnableMemoryWriting = false
+                        EnableMemoryWriting = true
                     };
                     AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
                     _vmm.RegisterAutoRefresh(RefreshOption.MemoryPartial, TimeSpan.FromMilliseconds(300));
@@ -257,6 +260,13 @@ namespace LoneEftDmaRadar.DMA
                 try
                 {
                     var ct = _cts.Token;
+
+                    Debug.WriteLine("[MemDMA] Creating CameraManager for new raid...");
+                    _cameraManager = new CameraManager();
+                    Memory.CameraManager = _cameraManager;
+                    Debug.WriteLine("[MemDMA] CameraManager created (will initialize cameras in background)");
+
+
                     using (var game = Game = LocalGameWorld.CreateGameInstance(ct))
                     {
                         OnRaidStarted();

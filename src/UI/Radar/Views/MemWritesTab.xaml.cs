@@ -12,5 +12,6 @@ namespace LoneEftDmaRadar.UI.Radar.Views
             InitializeComponent();
             DataContext = ViewModel = new MemWritesViewModel();
         }
+
     }
 }

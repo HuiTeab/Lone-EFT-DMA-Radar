@@ -1,47 +1,42 @@
-﻿using LoneEftDmaRadar.Tarkov.GameWorld.Player;
+﻿using LoneEftDmaRadar.Tarkov.GameWorld.Camera;
+using LoneEftDmaRadar.Tarkov.GameWorld.Player;
+using LoneEftDmaRadar.Tarkov.Unity;
+using LoneEftDmaRadar.Tarkov.Unity.Structures;
 
 namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
 {
     /// <summary>
     ///
     /// </summary>
-    public sealed class Tester : MemWriteFeature<Tester>
+    public sealed class ThermalVision : MemWriteFeature<ThermalVision>
     {
         private bool _lastEnabledState;
-
         public override bool Enabled
         {
-            get => App.Config.MemWrites.TestEnabled;
-            set => App.Config.MemWrites.TestEnabled = value;
+            get => App.Config.MemWrites.ThermalEnabled;
+            set => App.Config.MemWrites.ThermalEnabled = value;
         }
-
-        protected override TimeSpan Delay => TimeSpan.FromMilliseconds(50);
+        // Old version also ran at ~1s cadence
+        protected override TimeSpan Delay => TimeSpan.FromSeconds(1);
 
         public override void TryApply(LocalPlayer localPlayer)
         {
-
             try
             {
                 if (localPlayer == null)
-                {
                     return;
-                }
 
                 var stateChanged = Enabled != _lastEnabledState;
 
                 if (!Enabled)
                 {
-                    Debug.WriteLine("Tester disabled");
                     if (stateChanged)
                     {
                         _lastEnabledState = false;
+                        Debug.WriteLine("[ThermalVision] Disabled");
                     }
                     return;
                 }
-
-                Debug.WriteLine("Tester enabled");
-
-
 
                 if (stateChanged)
                 {
@@ -50,13 +45,15 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
             }
             catch (Exception ex)
             {
-                ClearCache();
+                Debug.WriteLine($"[ThermalVision] Exception: {ex}");
             }
-        }
 
+
+        }
 
         private void ClearCache()
         {
+
         }
 
         public override void OnRaidStart()
@@ -65,4 +62,5 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
             ClearCache();
         }
     }
+
 }

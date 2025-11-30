@@ -57,15 +57,15 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         public string StatusText => Enabled ? "?? ENABLED - HIGH RISK" : "Disabled - Safe";
         public string StatusColor => Enabled ? "Red" : "Green";
 
-        public bool TestEnabled
+        public bool ThermalEnabled
         {
-            get => App.Config.MemWrites.TestEnabled;
+            get => App.Config.MemWrites.ThermalEnabled;
             set
             {
-                if (App.Config.MemWrites.TestEnabled != value)
+                if (App.Config.MemWrites.ThermalEnabled != value)
                 {
-                    App.Config.MemWrites.TestEnabled = value;
-                    OnPropertyChanged(nameof(TestEnabled));
+                    App.Config.MemWrites.ThermalEnabled = value;
+                    OnPropertyChanged(nameof(ThermalEnabled));
                 }
             }
         }

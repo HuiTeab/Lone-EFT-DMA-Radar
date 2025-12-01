@@ -5,15 +5,13 @@ namespace SDK
         public readonly partial struct GameWorld
         {
             public const uint BtrController = 0x20; // EFT.Vehicle.BtrController
-            public const uint LocationId = 0xB8; // string
-            public const uint LootList = 0x178; // System.Collections.Generic.List<IKillable>
-            public const uint RegisteredPlayers = 0x190; // System.Collections.Generic.List<IPlayer>
-            public const uint MainPlayer = 0x1E0; // EFT.Player
-            public const uint SynchronizableObjectLogicProcessor = 0x218; // EFT.SynchronizableObjects.SynchronizableObjectLogicProcessor
-            public const uint Grenades = 0x258; // DictionaryListHydra<int, Throwable>
-            public const uint ExfiltrationController = 0x48; //ExfiltrationController
+            public const uint LocationId = 0xC0; // string
+            public const uint LootList = 0x180; // System.Collections.Generic.List<IKillable>
+            public const uint RegisteredPlayers = 0x198; // System.Collections.Generic.List<IPlayer>
+            public const uint MainPlayer = 0x1e8; // EFT.Player
+            public const uint SynchronizableObjectLogicProcessor = 0x220; // EFT.SynchronizableObjects.SynchronizableObjectLogicProcessor
+            public const uint Grenades = 0x260; // DictionaryListHydra<int, Throwable>
         }
-
 
         public readonly partial struct SynchronizableObject
         {
@@ -56,10 +54,10 @@ namespace SDK
         {
             public const uint MovementContext = 0x60; // EFT.MovementContext
             public const uint _playerBody = 0x190; // EFT.PlayerBody
-            public const uint Corpse = 0x670; // EFT.Interactive.Corpse
-            public const uint Location = 0x860; // string
-            public const uint Profile = 0x8D8; // EFT.Profile
-            public const uint _playerLookRaycastTransform = 0x9E0; // UnityEngine.Transform
+            public const uint Corpse = 0x678; // EFT.Interactive.Corpse
+            public const uint Location = 0x868; // string
+            public const uint Profile = 0x8e0; // EFT.Profile
+            public const uint _playerLookRaycastTransform = 0x9e8; // UnityEngine.Transform
         }
 
         public readonly partial struct ObservedPlayerView
@@ -131,13 +129,12 @@ namespace SDK
             public const uint Side = 0x48; // [HUMAN] Int32
             public const uint RegistrationDate = 0x4C; // int
             public const uint GroupId = 0x50; // string
-            public const uint EntryPoint = 0x28; // string
         }
 
         public readonly partial struct MovementContext
         {
             public const uint Player = 0x48; // EFT.Player
-            public const uint _rotation = 0xC4; // UnityEngine.Vector2
+            public const uint _rotation = 0xc8; // UnityEngine.Vector2
         }
 
         public readonly partial struct InteractiveLootItem
@@ -176,7 +173,6 @@ namespace SDK
         {
             public const uint SkeletonRootJoint = 0x30; // Diz.Skinning.Skeleton
         }
-
         public readonly partial struct ExfiltrationController
         {
             public const uint SecretExfilitranionController = 0x18; // EFT.Interactive.SecretExfiltrations.SecretExfilitranionController
@@ -267,17 +263,6 @@ namespace SDK
             Exploding = 3,
             Exploded = 4,
             Inert = 5,
-        }
-
-        public enum EExfiltrationStatus
-        {
-            NotPresent = 1,
-            UncompleteRequirements = 2,
-            Countdown = 3,
-            RegularMode = 4,
-            Pending = 5,
-            AwaitsManualActivation = 6,
-            Hidden = 7,
         }
     }
 }

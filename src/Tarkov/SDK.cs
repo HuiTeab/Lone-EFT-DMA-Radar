@@ -11,6 +11,7 @@ namespace SDK
             public const uint MainPlayer = 0x1e8; // EFT.Player
             public const uint SynchronizableObjectLogicProcessor = 0x220; // EFT.SynchronizableObjects.SynchronizableObjectLogicProcessor
             public const uint Grenades = 0x260; // DictionaryListHydra<int, Throwable>
+            public const uint ExfiltrationController = 0x48; //ExfiltrationController
         }
 
         public readonly partial struct SynchronizableObject
@@ -129,6 +130,7 @@ namespace SDK
             public const uint Side = 0x48; // [HUMAN] Int32
             public const uint RegistrationDate = 0x4C; // int
             public const uint GroupId = 0x50; // string
+            public const uint EntryPoint = 0x28; // string
         }
 
         public readonly partial struct MovementContext
@@ -263,6 +265,16 @@ namespace SDK
             Exploding = 3,
             Exploded = 4,
             Inert = 5,
+        }
+        public enum EExfiltrationStatus
+        {
+            NotPresent = 1,
+            UncompleteRequirements = 2,
+            Countdown = 3,
+            RegularMode = 4,
+            Pending = 5,
+            AwaitsManualActivation = 6,
+            Hidden = 7,
         }
     }
 }

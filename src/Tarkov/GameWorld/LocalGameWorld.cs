@@ -58,7 +58,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
         private readonly ExitManager _exfilManager;
         private readonly ExplosivesManager _explosivesManager;
         private readonly MemWritesManager _memWritesManager;
-        private readonly CameraManager _cameraManager;
+        //private readonly CameraManager _cameraManager;
         private readonly WorkerThread _t1;
         private readonly WorkerThread _t2;
         private readonly WorkerThread _t3;

@@ -261,10 +261,10 @@ namespace LoneEftDmaRadar.DMA
                 {
                     var ct = _cts.Token;
 
-                    Debug.WriteLine("[MemDMA] Creating CameraManager for new raid...");
-                    _cameraManager = new CameraManager();
-                    Memory.CameraManager = _cameraManager;
-                    Debug.WriteLine("[MemDMA] CameraManager created (will initialize cameras in background)");
+                    //Debug.WriteLine("[MemDMA] Creating CameraManager for new raid...");
+                    //_cameraManager = new CameraManager();
+                    //Memory.CameraManager = _cameraManager;
+                    //Debug.WriteLine("[MemDMA] CameraManager created (will initialize cameras in background)");
 
 
                     using (var game = Game = LocalGameWorld.CreateGameInstance(ct))

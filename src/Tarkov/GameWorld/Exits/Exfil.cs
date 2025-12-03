@@ -129,10 +129,14 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                         //Customs
                         { "customs_sniper_exit", "Railroad Passage (Flare)" },
                         { "Factory Gate", "Friendship Bridge (Co-Op)" },
+                        { "Military Checkpoint", "Military Base CP" },
                         //Woods
                         { "South V-Ex", "Bridge V-Ex" },
                         { "wood_sniper_exit", "Power Line Passage (Flare)" },
                         { "Custom_scav_pmc", "Boiler Room Basement (Co-op)" },
+                        { "West Border", "RUAF Roadblock" },
+                        { "Old Station", "Old Railway Depot" },
+                        { "un-sec", "Northern UN Roadblock" },
                         //Interchange
                         { "SE Exfil", "Emercom Checkpoint" },
                         { "NW Exfil", "Railway Exfil" },
@@ -147,6 +151,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                         { "Exit1", "Hole in the Wall by the Mountains" },//???
                         { "Exit2", "Heating Pipe" }, //???
                         { "Exit4", "Checkpoint Fence" },
+                        { "Exit3", "Depot Hermetic Door" },
                         //Lighthouse
                         { "V-Ex_light", "Road to Military Base V-Ex" },
                         { "tunnel_shared", "Side Tunnel (Co-Op)" },

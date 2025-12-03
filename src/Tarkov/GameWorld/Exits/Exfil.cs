@@ -130,6 +130,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                         { "customs_sniper_exit", "Railroad Passage (Flare)" },
                         { "Factory Gate", "Friendship Bridge (Co-Op)" },
                         { "Military Checkpoint", "Military Base CP" },
+                        { "Shack", "Trailer Park Workers' Shack" },
+                        { "Old Azs Gate", "Old Gas Station Gate" },
                         //Woods
                         { "South V-Ex", "Bridge V-Ex" },
                         { "wood_sniper_exit", "Power Line Passage (Flare)" },

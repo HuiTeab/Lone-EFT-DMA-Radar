@@ -144,6 +144,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                         { "Alpinist", "Cliff Descent" },
                         { "EXFIL_ScavCooperation", "Scav Lands (Co-Op)" },
                         { "EXFIL_vent", "Sewer Manhole" },
+                        { "Exit1", "Hole in the Wall by the Mountains" },//???
+                        { "Exit2", "Heating Pipe" }, //???
+                        { "Exit4", "Checkpoint Fence" },
                         //Lighthouse
                         { "V-Ex_light", "Road to Military Base V-Ex" },
                         { "tunnel_shared", "Side Tunnel (Co-Op)" },

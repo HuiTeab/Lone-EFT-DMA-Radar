@@ -76,7 +76,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                 if (_isPMC)
                 {
                     entryPointPtr = Memory.ReadPtr(_localPlayer.Info + Offsets.PlayerInfo.EntryPoint);
-                    entryPointName = Memory.ReadUnicodeString(entryPointPtr);
+                    entryPointName = Memory.ReadUnityString(entryPointPtr);
                 }
             }
             catch (Exception ex)
@@ -90,14 +90,14 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
             foreach (var exfilAddr in exfilArray)
             {
                 var namePtr = Memory.ReadPtrChain(exfilAddr, false, new[] { Offsets.ExfiltrationPoint.Settings, Offsets.ExitTriggerSettings.Name });
-                var exfilName = Memory.ReadUnicodeString(namePtr)?.Trim();
+                var exfilName = Memory.ReadUnityString(namePtr)?.Trim();
                 if (_isPMC)
                 {
                     ulong eligibleEntryPointsArray = Memory.ReadPtr(exfilAddr + Offsets.ExfiltrationPoint.EligibleEntryPoints, false);
                     using var eligibleEntryPoints = UnityArray<ulong>.Create(eligibleEntryPointsArray, false);
                     foreach (var eligibleEntryPointAddr in eligibleEntryPoints)
                     {
-                        string entryPointIDStr = Memory.ReadUnicodeString(eligibleEntryPointAddr);
+                        string entryPointIDStr = Memory.ReadUnityString(eligibleEntryPointAddr);
                         if (!string.IsNullOrEmpty(entryPointIDStr) && entryPointIDStr.Equals(entryPointName, StringComparison.OrdinalIgnoreCase))
                         {
                             var exfil = new Exfil(exfilAddr, exfilName, _mapId, _isPMC);

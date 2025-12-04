@@ -133,6 +133,13 @@ namespace LoneEftDmaRadar
         public MemWritesConfig MemWrites { get; private set; } = new();
 
         /// <summary>
+        /// Quest Helper Cfg
+        /// </summary>
+        [JsonPropertyName("questHelperCfg")]
+        [JsonInclude]
+        public QuestHelperConfig QuestHelper { get; private set; } = new();
+
+        /// <summary>
         /// Player Watchlist Collection.
         /// ** ONLY USE FOR BINDING **
         /// </summary>
@@ -772,5 +779,22 @@ namespace LoneEftDmaRadar
     {
         public bool Enabled { get; set; } = false;
         public bool ThermalEnabled { get; set; } = false;
+    }
+
+    public sealed class QuestHelperConfig
+    {
+        /// <summary>
+        /// Enables Quest Helper
+        /// </summary>
+        [JsonPropertyName("enabled")]
+        public bool Enabled { get; set; } = true;
+
+        /// <summary>
+        /// Quests that are overridden/disabled.
+        /// </summary>
+        [JsonPropertyName("blacklistedQuests_v4")]
+        [JsonInclude]
+        [JsonConverter(typeof(CaseInsensitiveConcurrentDictionaryConverter<byte>))]
+        public ConcurrentDictionary<string, byte> BlacklistedQuests { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
     }
 }

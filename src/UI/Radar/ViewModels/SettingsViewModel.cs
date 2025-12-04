@@ -28,6 +28,7 @@ SOFTWARE.
 
 using LoneEftDmaRadar.Tarkov;
 using LoneEftDmaRadar.Tarkov.GameWorld.Loot;
+using LoneEftDmaRadar.Tarkov.GameWorld.Quests;
 using LoneEftDmaRadar.UI.ColorPicker;
 using LoneEftDmaRadar.UI.Data;
 using LoneEftDmaRadar.UI.Hotkeys;
@@ -449,6 +450,25 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         public ObservableCollection<StaticContainerEntry> StaticContainers { get; } = new();
 
         public bool ContainerIsTracked(string id) => StaticContainers.Any(x => x.Id.Equals(id, StringComparison.OrdinalIgnoreCase) && x.IsTracked);
+
+        #endregion
+
+        #region Quest Helper
+
+        public bool QuestHelperEnabled
+        {
+            get => App.Config.QuestHelper.Enabled;
+            set
+            {
+                if (App.Config.QuestHelper.Enabled != value)
+                {
+                    App.Config.QuestHelper.Enabled = value;
+                    OnPropertyChanged(nameof(QuestHelperEnabled));
+                }
+            }
+        }
+
+        public ObservableCollection<QuestEntry> CurrentQuests { get; } = new();
 
         #endregion
 

@@ -31,9 +31,6 @@ using LoneEftDmaRadar.Tarkov.Unity;
 using LoneEftDmaRadar.UI.Radar.Maps;
 using LoneEftDmaRadar.UI.Skia;
 using System.Text.RegularExpressions;
-using TwitchLib.Api.Helix.Models.Entitlements;
-using SkiaSharp;
-using System.ComponentModel;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
 {
@@ -140,6 +137,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                         { "Old Station", "Old Railway Depot" },
                         { "un-sec", "Northern UN Roadblock" },
                         { "The Boat", "Boat" },
+                        { "East Gate", "Scav Bunker" },
                         //Interchange
                         { "SE Exfil", "Emercom Checkpoint" },
                         { "NW Exfil", "Railway Exfil" },

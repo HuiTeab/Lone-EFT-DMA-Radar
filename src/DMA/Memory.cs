@@ -60,6 +60,7 @@ namespace LoneEftDmaRadar.DMA
 
         public static string MapID => Game?.MapID;
         public static ulong UnityBase { get; private set; }
+        public static ulong GameBase { get; private set; }
         public static ulong GOM { get; private set; }
         public static bool Starting { get; private set; }
         public static bool Ready { get; private set; }
@@ -312,6 +313,7 @@ namespace LoneEftDmaRadar.DMA
             Starting = default;
             Ready = default;
             UnityBase = default;
+            GameBase = default;
             GOM = default;
             _pid = default;
         }
@@ -340,8 +342,11 @@ namespace LoneEftDmaRadar.DMA
         {
             var unityBase = _vmm.ProcessGetModuleBase(_pid, "UnityPlayer.dll");
             unityBase.ThrowIfInvalidUserVA(nameof(unityBase));
+            var gameBase = _vmm.ProcessGetModuleBase(_pid, "GameAssembly.dll");
+            gameBase.ThrowIfInvalidUserVA(nameof(gameBase));
             GOM = GameObjectManager.GetAddr(unityBase);
             UnityBase = unityBase;
+            GameBase = gameBase;
         }
 
         #endregion

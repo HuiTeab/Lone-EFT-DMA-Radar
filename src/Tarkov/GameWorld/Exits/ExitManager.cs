@@ -27,7 +27,9 @@ SOFTWARE.
 */
 
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
+using LoneEftDmaRadar.Tarkov.Unity;
 using LoneEftDmaRadar.Tarkov.Unity.Collections;
+using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -36,6 +38,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using TwitchLib.Api.Helix.Models.Entitlements;
 using TwitchLib.Api.Helix.Models.Raids;
+using VmmSharpEx.Extensions;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
 {
@@ -86,6 +89,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                 return;
             }
 
+            
+
             using var exfilArray = UnityArray<ulong>.Create(exfilArrayAddr, false);
             foreach (var exfilAddr in exfilArray)
             {
@@ -100,6 +105,35 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                         string entryPointIDStr = Memory.ReadUnityString(eligibleEntryPointAddr);
                         if (!string.IsNullOrEmpty(entryPointIDStr) && entryPointIDStr.Equals(entryPointName, StringComparison.OrdinalIgnoreCase))
                         {
+                            //try
+                            //{
+                            //    //[A0] Requirements : EFT.Interactive.ExfiltrationRequirement[]
+                            //    var requirementsAddr = Memory.ReadPtr(exfilAddr + 0xA0, false);
+                            //    var requirementsArray = UnityArray<ulong>.Create(requirementsAddr, false);
+                            //    if (requirementsArray.Count > 0)
+                            //    {
+                            //        Debug.WriteLine($"[ExitManager] Exfil {exfilName} Requirements Count: {requirementsArray.Count}");
+                            //        foreach (var requirementAddr in requirementsArray)
+                            //        {
+                            //            //[10] Requirement : EFT.Interactive.ERequirementState + 10 : value__ (type: System.Int32)Enum
+                            //            try
+                            //            {
+                            //                //var objName = ObjectClass.ReadName(requirementAddr);
+                            //                //Debug.WriteLine($"[ExitManager] Exfil {exfilName} Requirement Obj Name: {objName}");
+                            //                //WorldEventRequirement, TransferItemRequirement, ScavCooperationRequirement...
+                            //                var requirementState = Memory.ReadValue<int>(requirementAddr + 0x10);
+                            //            }
+                            //            catch (Exception ex)
+                            //            {
+
+                            //            }
+                            //        }
+                            //    }
+                            //}
+                            //catch (Exception ex)
+                            //{
+                            //    Debug.WriteLine($"[ExitManager] Exfil Eligible Entry Point Error: {ex}");
+                            //}
                             var exfil = new Exfil(exfilAddr, exfilName, _mapId, _isPMC);
                             list.Add(exfil);
                         }

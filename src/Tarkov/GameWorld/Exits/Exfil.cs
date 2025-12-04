@@ -139,10 +139,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                         { "West Border", "RUAF Roadblock" },
                         { "Old Station", "Old Railway Depot" },
                         { "un-sec", "Northern UN Roadblock" },
+                        { "The Boat", "Boat" },
                         //Interchange
                         { "SE Exfil", "Emercom Checkpoint" },
                         { "NW Exfil", "Railway Exfil" },
                         { "Interchange Cooperation", "Scav Camp (Co-Op)" },
+                        { "shopping_sniper_exit", "Hole in the Fence" },
+                        { "PP Exfil", "Power Station V-Ex" },
                         //Reserve
                         { "EXFIL_Train", "Armored Train" },
                         { "EXFIL_Bunker_D2", "D-2" },

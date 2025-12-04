@@ -34,6 +34,7 @@ using LoneEftDmaRadar.Tarkov.GameWorld.Exits;
 using LoneEftDmaRadar.Tarkov.GameWorld.Explosives;
 using LoneEftDmaRadar.Tarkov.GameWorld.Loot;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
+using LoneEftDmaRadar.Tarkov.GameWorld.Quests;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using VmmSharpEx.Options;
 
@@ -76,6 +77,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
         public LocalPlayer LocalPlayer => _rgtPlayers?.LocalPlayer;
         public LootManager Loot { get; }
         private LocalGameWorld() { }
+        public QuestManager QuestManager { get; }
 
         /// <summary>
         /// Game Constructor.
@@ -112,6 +114,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 var rgtPlayersAddr = Memory.ReadPtr(localGameWorld + Offsets.GameWorld.RegisteredPlayers, false);
                 _rgtPlayers = new RegisteredPlayers(rgtPlayersAddr, this);
                 ArgumentOutOfRangeException.ThrowIfLessThan(_rgtPlayers.GetPlayerCount(), 1, nameof(_rgtPlayers));
+                QuestManager = new(_rgtPlayers.LocalPlayer.Profile);
                 Loot = new(localGameWorld);
                 _exfilManager = new(localGameWorld, mapID, _rgtPlayers.LocalPlayer);
                 _explosivesManager = new(localGameWorld);
@@ -312,6 +315,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
             RefreshEquipment();
 
             _exfilManager.Refresh();
+
+            if (App.Config.QuestHelper.Enabled)
+                QuestManager.Refresh(ct);
         }
 
         private void RefreshEquipment()

@@ -23,14 +23,14 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
             {
                 if (_isEnabled == value) return;
                 _isEnabled = value;
-                //if (value) // Enabled
-                //{
-                //    App.Config.QuestHelper.BlacklistedQuests.TryRemove(Id, out _);
-                //}
-                //else
-                //{
-                //    App.Config.QuestHelper.BlacklistedQuests.TryAdd(Id, 0);
-                //}
+                if (value) // Enabled
+                {
+                    App.Config.QuestHelper.BlacklistedQuests.TryRemove(Id, out _);
+                }
+                else
+                {
+                    App.Config.QuestHelper.BlacklistedQuests.TryAdd(Id, 0);
+                }
                 OnPropertyChanged(nameof(IsEnabled));
             }
         }

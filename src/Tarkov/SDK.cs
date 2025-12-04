@@ -59,6 +59,7 @@ namespace SDK
             public const uint Location = 0x868; // string
             public const uint Profile = 0x8E0; // object
             public const uint _playerLookRaycastTransform = 0x9E8; // object
+            public const uint ProceduralWeaponAnimation = 0x338;
         }
 
         public readonly partial struct ObservedPlayerView
@@ -197,6 +198,50 @@ namespace SDK
             public const uint Id = 0x10; // string
             public const uint Name = 0x18; // string
             public const uint EntryPoints = 0x40; // string
+        }
+
+        public readonly partial struct ProceduralWeaponAnimation
+        {
+            public const uint ShotNeedsFovAdjustments = 0x433;
+            public const uint Breath = 0x38;
+            public const uint Mask = 0x30;
+            public const uint Shootingg = 0x58;
+            public const uint _isAiming = 0x145;
+            public const uint _optics = 0x180;
+            public const uint _shotDirection = 0x1c8;
+            public const uint _aimingSpeed = 0x164;
+            public const uint HandsContainer = 0x20;
+            public const uint PositionZeroSum = 0x31c;
+        }
+
+        public readonly partial struct SightNBone
+        {
+            public const uint Mod = 0x10; // EFT.InventoryLogic.SightComponent
+        }
+        public readonly partial struct SightComponent
+        {
+            public const uint OpticCalibrationPoints = 0x18;
+            public const uint ScopeZoomValue = 0x3c;
+            public const uint ScopesCurrentCalibPointIndexes = 0x28;
+            public const uint ScopesSelectedModes = 0x30;
+            public const uint SelectedScope = 0x38;
+            public const uint _template = 0x20;
+        }
+
+        public readonly partial struct SightInterface
+        {
+            public const uint Zooms = 0x1B8; // System.Single[][]
+        }
+        public readonly partial struct ThermalVision
+        {
+            public const uint ChromaticAberrationThermalShift = 0x68;
+            public const uint IsFpsStuck = 0x22;
+            public const uint IsGlitch = 0x24;
+            public const uint IsMotionBlurred = 0x23;
+            public const uint IsNoisy = 0x21;
+            public const uint IsPixelated = 0x25;
+            public const uint On = 0x20;
+            public const uint UnsharpRadiusBlur = 0x90;
         }
     }
 

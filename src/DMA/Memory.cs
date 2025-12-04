@@ -73,6 +73,7 @@ namespace LoneEftDmaRadar.DMA
         public static LootManager Loot => Game?.Loot;
         public static LocalGameWorld Game { get; private set; }
         public static CameraManager CameraManager { get; internal set; }
+
         private static CameraManager _cameraManager;
 
         internal static async Task ModuleInitAsync()
@@ -262,11 +263,17 @@ namespace LoneEftDmaRadar.DMA
                 {
                     var ct = _cts.Token;
 
-                    //Debug.WriteLine("[MemDMA] Creating CameraManager for new raid...");
-                    //_cameraManager = new CameraManager();
-                    //Memory.CameraManager = _cameraManager;
-                    //Debug.WriteLine("[MemDMA] CameraManager created (will initialize cameras in background)");
-
+                    Debug.WriteLine("[MemDMA] Ensuring CameraManager exists for raid...");
+                    if (_cameraManager == null)
+                    {
+                        _cameraManager = new CameraManager();
+                        Debug.WriteLine("[MemDMA] CameraManager created (global instance, will handle raids via its own init thread)");
+                    }
+                    else
+                    {
+                        Debug.WriteLine("[MemDMA] Reusing existing CameraManager instance.");
+                    }
+                    CameraManager = _cameraManager;
 
                     using (var game = Game = LocalGameWorld.CreateGameInstance(ct))
                     {

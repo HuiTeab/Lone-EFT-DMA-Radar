@@ -1,4 +1,6 @@
-﻿namespace LoneEftDmaRadar.Tarkov.Unity.Structures
+﻿using VmmSharpEx.Extensions;
+
+namespace LoneEftDmaRadar.Tarkov.Unity.Structures
 {
     [StructLayout(LayoutKind.Explicit)]
     public readonly struct UnityComponent // MonoBehaviour : Behaviour : << Component >> : EditorExtension : Object
@@ -24,6 +26,30 @@
         public ulong GetComponent(ulong behaviour, string className)
         {
             return GetGameObject().GetComponent(className);
+        }
+
+        public static ulong GetComponentFromBehaviour(ulong componentObject, string className, bool throwIfMissing = false)
+        {
+            if (!componentObject.IsValidVA())
+            {
+                if (throwIfMissing)
+                    throw new ArgumentOutOfRangeException(nameof(componentObject), "Behaviour ptr invalid");
+                return 0;
+            }
+
+            // Camera / MonoBehaviour / etc all derive from Component, so:
+            var gameObjectPtr = Memory.ReadPtr(
+                componentObject + UnitySDK.UnityOffsets.Component_GameObjectOffset);
+
+            if (!gameObjectPtr.IsValidVA())
+            {
+                if (throwIfMissing)
+                    throw new ArgumentOutOfRangeException(nameof(gameObjectPtr),
+                        "GameObject ptr invalid from behaviour");
+                return 0;
+            }
+
+            return LoneEftDmaRadar.Tarkov.Unity.Structures.GameObject.GetComponent(gameObjectPtr, className, throwIfMissing);
         }
     }
 }

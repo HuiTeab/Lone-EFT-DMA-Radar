@@ -78,10 +78,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         /// </summary>
         public override ulong RotationAddress { get; }
 
+        public ulong PWA { get; }
+
         internal ClientPlayer(ulong playerBase) : base(playerBase)
         {
             Profile = Memory.ReadPtr(this + Offsets.Player.Profile);
             Info = Memory.ReadPtr(Profile + Offsets.Profile.Info);
+            PWA = Memory.ReadPtr(this + Offsets.Player.ProceduralWeaponAnimation);
             CorpseAddr = this + Offsets.Player.Corpse;
             PlayerSide = (Enums.EPlayerSide)Memory.ReadValue<int>(Info + Offsets.PlayerInfo.Side);
             if (!Enum.IsDefined<Enums.EPlayerSide>(PlayerSide))

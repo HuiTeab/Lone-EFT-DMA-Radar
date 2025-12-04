@@ -1,44 +1,103 @@
-﻿namespace LoneEftDmaRadar.Tarkov.Unity.Structures
-{
+﻿using VmmSharpEx.Extensions;
 
+namespace LoneEftDmaRadar.Tarkov.Unity.Structures
+{
     [StructLayout(LayoutKind.Explicit)]
-    public readonly struct GameObject // EditorExtension : Object
+    public readonly struct GameObject
     {
+        [FieldOffset(0x08)]
+        public readonly int InstanceID;
+
         [FieldOffset((int)UnitySDK.UnityOffsets.GameObject_ObjectClassOffset)]
         public readonly ulong ObjectClass; // m_Object
-        [FieldOffset((int)UnitySDK.UnityOffsets.GameObject_NameOffset)]
-        public readonly ulong Name; // m_Name, String
+
         [FieldOffset((int)UnitySDK.UnityOffsets.GameObject_ComponentsOffset)]
-        public readonly ulong Components; // m_Components, DynamicArray
+        public readonly ComponentArray Components;
 
-        /// <summary>
-        /// Return the name of this game object.
-        /// </summary>
-        /// <returns>Name string.</returns>
-        public readonly string GetName() =>
-            Memory.ReadUtf8String(Name, 128);
+        [FieldOffset((int)UnitySDK.UnityOffsets.GameObject_NameOffset)]
+        public readonly ulong NamePtr;
 
-        /// <summary>
-        /// Gets a component class from a Game Object.
-        /// </summary>
-        /// <param name="className">Name of class of component.</param>
-        /// <returns>Requested component class.</returns>
-        public ulong GetComponent(string className)
+        public string GetName(int maxLen = 128, bool useCache = true)
         {
-            throw new NotImplementedException("TODO");
-            // component list
-            var componentArr = Memory.ReadValue<DynamicArray>(Components);
-            int size = componentArr.Size <= 0x1000 ?
-                (int)componentArr.Size : 0x1000;
-            using var compsBuf = Memory.ReadPooled<DynamicArray.Entry>(0x0, size); // TODO: componentArr.ArrayBase
-            foreach (var comp in compsBuf.Memory.Span)
+            if (!NamePtr.IsValidVA())
+                return string.Empty;
+
+            return Memory.ReadUtf8String(NamePtr, maxLen, useCache) ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Find component by class name and RETURN OBJECTCLASS POINTER
+        /// (matches old Mono behaviour).
+        /// </summary>
+        public ulong GetComponent(string className, bool useCache = true)
+        {
+            if (string.IsNullOrWhiteSpace(className))
+                return 0;
+
+            var componentArr = Components;
+            if (!componentArr.ArrayBase.IsValidVA() || componentArr.Size == 0)
+                return 0;
+
+            int count = (int)Math.Min(componentArr.Size, 0x400); // safety cap
+            var entries = new ComponentArray.Entry[count];
+
+            try
             {
-                var compClass = Memory.ReadPtr(comp.Component + UnitySDK.UnityOffsets.Component_ObjectClassOffset);
-                var name = Structures.ObjectClass.ReadName(compClass);
-                if (name.Equals(className, StringComparison.OrdinalIgnoreCase))
-                    return compClass;
+                Memory.ReadSpan(componentArr.ArrayBase, entries);
             }
-            throw new InvalidOperationException("Component Not Found!");
+            catch
+            {
+                return 0;
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                var compPtr = entries[i].Component;
+                if (!compPtr.IsValidVA())
+                    continue;
+
+                ulong objectClass;
+                try
+                {
+                    objectClass = Memory.ReadPtr(
+                        compPtr + UnitySDK.UnityOffsets.Component_ObjectClassOffset,
+                        useCache);
+                }
+                catch
+                {
+                    continue;
+                }
+
+                if (!objectClass.IsValidVA())
+                    continue;
+
+                string name;
+                try
+                {
+                    name = LoneEftDmaRadar.Tarkov.Unity.Structures.ObjectClass.ReadName(objectClass, 128, useCache);
+                }
+                catch
+                {
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(name))
+                    continue;
+
+                if (name.Equals(className, StringComparison.OrdinalIgnoreCase))
+                    return objectClass; // <<<< return objectClass, NOT compPtr
+            }
+
+            return 0;
+        }
+
+        public static ulong GetComponent(ulong gameObjectPtr, string className, bool useCache = true)
+        {
+            if (!gameObjectPtr.IsValidVA())
+                return 0;
+
+            var go = Memory.ReadValue<GameObject>(gameObjectPtr, useCache);
+            return go.GetComponent(className, useCache);
         }
     }
 }

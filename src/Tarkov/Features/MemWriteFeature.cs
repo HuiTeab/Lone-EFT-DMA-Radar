@@ -1,51 +1,45 @@
-﻿/*
- * Lone EFT DMA Radar
- * MIT License - Copyright (c) 2025 Lone DMA
- */
-
-using LoneEftDmaRadar.Tarkov.GameWorld.Player;
+﻿// File: Tarkov/Features/MemWrites/MemWriteFeature.cs
 using System;
+using LoneEftDmaRadar.DMA.ScatterAPI;
+using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 
 namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
 {
-    /// <summary>
-    /// Base class for all memory write features.
-    /// </summary>
     public abstract class MemWriteFeature<T> where T : MemWriteFeature<T>, new()
     {
         private static T _instance;
         private DateTime _lastRun = DateTime.MinValue;
 
-        /// <summary>
-        /// Singleton instance.
-        /// </summary>
         public static T Instance => _instance ??= new T();
 
-        /// <summary>
-        /// Whether this feature is enabled.
-        /// </summary>
         public abstract bool Enabled { get; set; }
-
-        /// <summary>
-        /// Minimum delay between applications.
-        /// </summary>
         protected abstract TimeSpan Delay { get; }
 
         /// <summary>
-        /// Try to apply the memory write feature.
+        /// If true, this feature still wants to tick at least once
+        /// after Enabled becomes false, so it can restore state
+        /// (e.g. ThermalVision, ThirdPerson, WideLean).
         /// </summary>
+        protected virtual bool NeedsDisableCleanup => false;
+
         public abstract void TryApply(LocalPlayer localPlayer);
 
-        /// <summary>
-        /// Called when a raid starts.
-        /// </summary>
-        public abstract void OnRaidStart();
+        public virtual void TryApply(LocalPlayer localPlayer, ScatterWriteHandle writes)
+        {
+            TryApply(localPlayer);
+        }
 
-        /// <summary>
-        /// Checks if enough time has passed since last run.
-        /// </summary>
+        public abstract void OnRaidStart();
+        public abstract void OnRaidStopped();
+
         protected bool ShouldRun()
         {
+            if (Delay <= TimeSpan.Zero)
+            {
+                _lastRun = DateTime.UtcNow;
+                return true;
+            }
+
             var now = DateTime.UtcNow;
             if (now - _lastRun < Delay)
                 return false;
@@ -55,22 +49,23 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
         }
 
         /// <summary>
-        /// Apply with delay check.
+        /// Central gating used by MemWritesManager.
         /// </summary>
-        public void ApplyIfReady(LocalPlayer localPlayer)
+        public void ApplyIfReady(LocalPlayer localPlayer, ScatterWriteHandle writes)
         {
-            if (!Enabled)
-            {
+            if (!App.Config.MemWrites.Enabled)
                 return;
-            }
+            if (localPlayer is null)
+                return;
+
+            // If disabled *and* this feature doesn't need a cleanup pass, bail.
+            if (!Enabled && !NeedsDisableCleanup)
+                return;
 
             if (!ShouldRun())
-            {
                 return;
-            }
 
-            //Debug.WriteLine($"[{typeof(T).Name}] ApplyIfReady - calling TryApply");
-            TryApply(localPlayer);
+            TryApply(localPlayer, writes);
         }
     }
 }

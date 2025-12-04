@@ -35,7 +35,7 @@ namespace LoneEftDmaRadar.Tarkov.Unity
         public readonly struct UnityOffsets
         {
             public const uint GameObjectManager = 0x1A208D8;
-            public const uint AllCameras = 0x19F0100; // Lookup in IDA 's_AllCamera'
+            public const uint AllCameras = 0x19F0100;
 
             public const uint GameObject_ObjectClassOffset = 0x80;
             public const uint GameObject_ComponentsOffset = 0x58;
@@ -49,6 +49,13 @@ namespace LoneEftDmaRadar.Tarkov.Unity
 
             public const uint Hierarchy_VerticesOffset = 0x08;
             public const uint Hierarchy_IndicesOffset = 0xA0;
+
+            public const uint Camera_ViewMatrixOffset = 0x128;
+            public const uint Camera_FOVOffset = 0x1A8;
+            public const uint Camera_AspectRatioOffset = 0x518;
+            public const uint Camera_ZoomLevelOffset = 0xE8;
+
+            public const uint MonoBehaviour_IsAddedOffset = 0x39;
 
             public static readonly uint[] GameWorldChain =
             [

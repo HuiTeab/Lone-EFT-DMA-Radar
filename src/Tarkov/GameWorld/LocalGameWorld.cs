@@ -117,13 +117,14 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 _explosivesManager = new(localGameWorld);
 
                 _memWritesManager = new MemWritesManager();
+                _memWritesManager.OnRaidStart();
 
-                // Add new worker thread in constructor
                 _t4 = new WorkerThread()
                 {
                     Name = "MemWrites Worker",
                     ThreadPriority = ThreadPriority.Normal,
-                    SleepDuration = TimeSpan.FromMilliseconds(100)
+                    SleepDuration = TimeSpan.FromMilliseconds(10),
+                    SleepMode = WorkerThreadSleepMode.DynamicSleep
                 };
                 _t4.PerformWork += MemWritesWorker_PerformWork;
             }

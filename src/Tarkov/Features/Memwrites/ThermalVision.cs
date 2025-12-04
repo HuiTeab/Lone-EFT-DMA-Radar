@@ -1,66 +1,112 @@
-﻿using LoneEftDmaRadar.Tarkov.GameWorld.Camera;
+﻿using LoneEftDmaRadar.DMA.ScatterAPI;
+using LoneEftDmaRadar.Tarkov.GameWorld.Camera;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.Tarkov.Unity;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
+using VmmSharpEx.Extensions;
 
 namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
 {
-    /// <summary>
-    ///
-    /// </summary>
     public sealed class ThermalVision : MemWriteFeature<ThermalVision>
     {
-        private bool _lastEnabledState;
+        private bool _currentState;
+        private ulong _cachedThermalVisionComponent;
+
+        // ? tell the base we must run once after disable
+        protected override bool NeedsDisableCleanup => true;
+
         public override bool Enabled
         {
             get => App.Config.MemWrites.ThermalEnabled;
             set => App.Config.MemWrites.ThermalEnabled = value;
         }
-        // Old version also ran at ~1s cadence
-        protected override TimeSpan Delay => TimeSpan.FromSeconds(1);
+
+        protected override TimeSpan Delay => TimeSpan.FromMilliseconds(250);
 
         public override void TryApply(LocalPlayer localPlayer)
         {
+            using var writes = ScatterWriteHandle.Create();
+            TryApply(localPlayer, writes);
+            writes.Execute();
+        }
+
+        public override void TryApply(LocalPlayer localPlayer, ScatterWriteHandle writes)
+        {
             try
             {
-                if (localPlayer == null)
+                if (!Memory.InRaid || localPlayer is null)
                     return;
 
-                var stateChanged = Enabled != _lastEnabledState;
+                // Old behavior: on only if enabled and not ADS
+                bool targetState = Enabled && !localPlayer.CheckIfADS();
 
-                if (!Enabled)
-                {
-                    if (stateChanged)
-                    {
-                        _lastEnabledState = false;
-                        Debug.WriteLine("[ThermalVision] Disabled");
-                    }
+                // If no change, do nothing
+                if (targetState == _currentState)
                     return;
-                }
 
-                if (stateChanged)
+                var thermalComponent = GetThermalVisionComponent();
+                if (!thermalComponent.IsValidVA())
+                    return;
+
+                writes.AddValueEntry(thermalComponent + Offsets.ThermalVision.On, targetState);
+                writes.AddValueEntry(thermalComponent + Offsets.ThermalVision.IsNoisy, !targetState);
+                writes.AddValueEntry(thermalComponent + Offsets.ThermalVision.IsFpsStuck, !targetState);
+                writes.AddValueEntry(thermalComponent + Offsets.ThermalVision.IsMotionBlurred, !targetState);
+                writes.AddValueEntry(thermalComponent + Offsets.ThermalVision.IsGlitch, !targetState);
+                writes.AddValueEntry(thermalComponent + Offsets.ThermalVision.IsPixelated, !targetState);
+                writes.AddValueEntry(
+                    thermalComponent + Offsets.ThermalVision.ChromaticAberrationThermalShift,
+                    targetState ? 0f : 0.013f);
+                writes.AddValueEntry(
+                    thermalComponent + Offsets.ThermalVision.UnsharpRadiusBlur,
+                    targetState ? 0.0001f : 5f);
+
+                writes.Callbacks += () =>
                 {
-                    _lastEnabledState = true;
-                }
+                    _currentState = targetState;
+                    Debug.WriteLine($"[ThermalVision] {(targetState ? "Enabled" : "Disabled")}");
+                };
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[ThermalVision] Exception: {ex}");
+                Debug.WriteLine($"[ThermalVision] ERROR: {ex}");
+                _cachedThermalVisionComponent = 0;
             }
-
-
         }
 
-        private void ClearCache()
+        private ulong GetThermalVisionComponent()
         {
+            if (_cachedThermalVisionComponent.IsValidVA())
+                return _cachedThermalVisionComponent;
 
+            var fpsCamera = CameraManager.Current?.FPSCamera ?? 0;
+            if (!fpsCamera.IsValidVA())
+            {
+                Debug.WriteLine("[ThermalVision] FPS Camera not found");
+                return 0;
+            }
+
+            var thermal = UnityComponent.GetComponentFromBehaviour(fpsCamera, "ThermalVision");
+            if (!thermal.IsValidVA())
+            {
+                Debug.WriteLine("[ThermalVision] ThermalVision component not found on FPS camera GO");
+                return 0;
+            }
+
+            _cachedThermalVisionComponent = thermal;
+            return thermal;
         }
 
         public override void OnRaidStart()
         {
-            _lastEnabledState = default;
-            ClearCache();
+            _currentState = false;
+            _cachedThermalVisionComponent = 0;
+        }
+
+        public override void OnRaidStopped()
+        {
+            _currentState = false;
+            _cachedThermalVisionComponent = 0;
         }
     }
-
 }

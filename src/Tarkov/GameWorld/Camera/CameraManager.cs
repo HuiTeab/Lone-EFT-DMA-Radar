@@ -6,7 +6,6 @@
 using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Misc;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
-using LoneEftDmaRadar.Tarkov.Mono.Collections;
 using LoneEftDmaRadar.Tarkov.Unity;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using SkiaSharp;
@@ -20,6 +19,7 @@ using System.Collections.Generic;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player.Helpers;
 using System;
 using System.Threading;
+using LoneEftDmaRadar.Tarkov.Unity.Collections;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
 {
@@ -511,7 +511,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
                     return false;
                 }
 
-                using var optics = MonoList<VmmPointer>.Create(opticsPtr, true);
+                using var optics = UnityList<VmmPointer>.Create(opticsPtr, true);
                 if (optics.Count <= 0)
                 {
                     _zoomLevel = 1.0f;
@@ -753,9 +753,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
                     if (SelectedScope >= zoomArray.Count || SelectedScope is < 0 or > 10)
                         return -1.0f;
 
-                    using var selectedScopeModes = MonoArray<int>.Create(pScopeSelectedModes, false);
+                    using var selectedScopeModes = UnityArray<int>.Create(pScopeSelectedModes, false);
                     int selectedScopeMode = SelectedScope >= selectedScopeModes.Count ? 0 : selectedScopeModes[SelectedScope];
-                    ulong zoomAddr = zoomArray[SelectedScope] + MonoArray<float>.ArrBaseOffset + (uint)selectedScopeMode * 0x4;
+                    ulong zoomAddr = zoomArray[SelectedScope] + UnityArray<float>.ArrBaseOffset + (uint)selectedScopeMode * 0x4;
 
                     float zoomLevel = Memory.ReadValue<float>(zoomAddr, false);
                     if (zoomLevel.IsNormalOrZero() && zoomLevel is >= 0f and < 100f)
@@ -782,7 +782,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
             [FieldOffset((int)Offsets.SightInterface.Zooms)]
             private readonly ulong pZooms;
 
-            public readonly MonoArray<ulong> Zooms => MonoArray<ulong>.Create(pZooms, true);
+            public readonly UnityArray<ulong> Zooms => UnityArray<ulong>.Create(pZooms, true);
         }
 
         #endregion

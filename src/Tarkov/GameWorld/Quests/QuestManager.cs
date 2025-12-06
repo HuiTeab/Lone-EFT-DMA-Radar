@@ -1,5 +1,4 @@
 ﻿using Collections.Pooled;
-using LoneEftDmaRadar.Tarkov.Mono.Collections;
 using LoneEftDmaRadar.Tarkov.Unity.Collections;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using System;
@@ -7,6 +6,7 @@ using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Text;
 using VmmSharpEx.Extensions;
+using static LoneEftDmaRadar.Tarkov.TarkovDataManager;
 using static VmmSharpEx.Vmm;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
@@ -30,30 +30,30 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
             { "Labyrinth", "6733700029c367a3d40b02af" }
         }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
-        //private static readonly FrozenDictionary<string, FrozenDictionary<string, Vector3>> _questZones = TarkovDataManager.TaskData.Values
-        //    .Where(task => task.Objectives is not null) // Ensure the Objectives are not null
-        //    .SelectMany(task => task.Objectives)   // Flatten the Objectives from each TaskElement
-        //    .Where(objective => objective.Zones is not null) // Ensure the Zones are not null
-        //    .SelectMany(objective => objective.Zones)    // Flatten the Zones from each Objective
-        //    .Where(zone => zone.Position is not null && zone.Map?.Id is not null) // Ensure Position and Map are not null
-        //    .GroupBy(zone => zone.Map.Id, zone => new
-        //    {
-        //        id = zone.Id,
-        //        pos = new Vector3(zone.Position.X, zone.Position.Y, zone.Position.Z)
-        //    }, StringComparer.OrdinalIgnoreCase)
-        //    .DistinctBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
-        //    .ToDictionary(
-        //        group => group.Key, // Map Id
-        //        group => group
-        //        .DistinctBy(x => x.id, StringComparer.OrdinalIgnoreCase)
-        //        .ToDictionary(
-        //            zone => zone.id,
-        //            zone => zone.pos,
-        //            StringComparer.OrdinalIgnoreCase
-        //        ).ToFrozenDictionary(StringComparer.OrdinalIgnoreCase),
-        //        StringComparer.OrdinalIgnoreCase
-        //    )
-        //    .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+        private static readonly FrozenDictionary<string, FrozenDictionary<string, Vector3>> _questZones = TarkovDataManager.TaskData.Values
+            .Where(task => task.Objectives is not null) // Ensure the Objectives are not null
+            .SelectMany(task => task.Objectives)   // Flatten the Objectives from each TaskElement
+            .Where(objective => objective.Zones is not null) // Ensure the Zones are not null
+            .SelectMany(objective => objective.Zones)    // Flatten the Zones from each Objective
+            .Where(zone => zone.Position is not null && zone.Map?.Id is not null) // Ensure Position and Map are not null
+            .GroupBy(zone => zone.Map.Id, zone => new
+            {
+                id = zone.Id,
+                pos = new Vector3(zone.Position.X, zone.Position.Y, zone.Position.Z)
+            }, StringComparer.OrdinalIgnoreCase)
+            .DistinctBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key, // Map Id
+                group => group
+                .DistinctBy(x => x.id, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    zone => zone.id,
+                    zone => zone.pos,
+                    StringComparer.OrdinalIgnoreCase
+                ).ToFrozenDictionary(StringComparer.OrdinalIgnoreCase),
+                StringComparer.OrdinalIgnoreCase
+            )
+            .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
         private readonly ulong _profile;
         private DateTimeOffset _last = DateTimeOffset.MinValue;
@@ -121,26 +121,33 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
                         {
                             continue;
                         }
-                        Debug.WriteLine($"[QuestManager] Processing Quest ID: {task.Id} {task.Name}");
+                        //Debug.WriteLine($"[QuestManager] Processing Quest ID: {task.Id} {task.Name}");
                         using var completedHS = UnityHashSet<MongoID>.Create(Memory.ReadPtr(qDataEntry + Offsets.QuestData.CompletedConditions), true);
                         using var completedConditions = new PooledSet<string>(StringComparer.OrdinalIgnoreCase);
                         foreach (var c in completedHS)
                         {
                             var completedCond = c.Value.ReadString();
-                            if (task.Objectives is not null)
-                            {
-                                foreach (var obj in task.Objectives)
-                                {
-                                    if (string.Equals(obj?.Id, completedCond, StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        //if condition is completed we can use it to find non completed conditions
-
-                                    }
-                                }
-                            }
+                            completedConditions.Add(completedCond);
                         }
-                    }
+                        masterQuests.Add(qId);
+                        _ = _quests.GetOrAdd(
+                            qId,
+                            id => new QuestEntry(id));
 
+                        FilterConditions(task, qId, completedConditions, masterItems, masterLocations);
+
+                        ////print masterItems and masterLocations for debugging
+                        //Debug.WriteLine($"[QuestManager] Master Items for Quest ID: {task.Id} {task.Name}");
+                        //foreach (var item in masterItems)
+                        //{
+                        //    Debug.WriteLine($"[QuestManager]   Item ID: {item}");
+                        //}
+                        //Debug.WriteLine($"[QuestManager] Master Locations for Quest ID: {task.Id} {task.Name}");
+                        //foreach (var loc in masterLocations)
+                        //{
+                        //    Debug.WriteLine($"[QuestManager]   Location Key: {loc}");
+                        //}
+                    }
                     catch
                     {
 
@@ -177,71 +184,87 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
             }
         }
 
-        private void GetQuestConditions(string questID, ulong condition, ISet<string> completedConditions,
-            ISet<string> masterItems, ISet<string> masterLocations)
+
+        private void FilterConditions(TaskElement task, string questId, PooledSet<string> completedConditions, PooledSet<string> masterItems, PooledSet<string> masterLocations)
         {
-            try
+            if (task is null)
+                return;
+            if (task.Objectives is null)
+                return;
+            foreach (var objective in task.Objectives)
             {
-                //var condMongoId = Memory.ReadValue<MongoID>(condition + Offsets.QuestCondition.id);
-                //var condID = condMongoId.ReadString();
-                //if (completedConditions.Contains(condID))
-                //    return;
-                //var condName = ObjectClass.ReadName(condition);
-                //if (condName == "ConditionFindItem" || condName == "ConditionHandoverItem")
-                //{
-                //    var targetArray =
-                //        Memory.ReadPtr(condition + Offsets.QuestConditionFindItem.target); // this is a typical unity array[] at 0x48
-                //    using var targets = MonoArray<ulong>.Create(targetArray, true);
-                //    foreach (var targetPtr in targets)
-                //    {
-                //        var target = Memory.ReadUnicodeString(targetPtr);
-                //        masterItems.Add(target);
-                //        _items.TryAdd(target, 0);
-                //    }
-                //}
-                //else if (condName == "ConditionPlaceBeacon" || condName == "ConditionLeaveItemAtLocation")
-                //{
-                //    var zoneIDPtr = Memory.ReadPtr(condition + Offsets.QuestConditionPlaceBeacon.zoneId);
-                //    var target = Memory.ReadUnicodeString(zoneIDPtr); // Zone ID
-                //    if (_mapToId.TryGetValue(MapID, out var id) &&
-                //        _questZones.TryGetValue(id, out var zones) &&
-                //        zones.TryGetValue(target, out var loc))
-                //    {
-                //        masterLocations.Add(target);
-                //        _ = _locations.GetOrAdd(
-                //            target,
-                //            t => new QuestLocation(questID, t, loc));
-                //    }
-                //}
-                //else if (condName == "ConditionVisitPlace")
-                //{
-                //    var targetPtr = Memory.ReadPtr(condition + Offsets.QuestConditionVisitPlace.target);
-                //    var target = Memory.ReadUnicodeString(targetPtr);
-                //    if (_mapToId.TryGetValue(MapID, out var id) &&
-                //        _questZones.TryGetValue(id, out var zones) &&
-                //        zones.TryGetValue(target, out var loc))
-                //    {
-                //        masterLocations.Add(target);
-                //        _ = _locations.GetOrAdd(
-                //            target,
-                //            t => new QuestLocation(questID, t, loc));
-                //    }
-                //}
-                //else if (condName == "ConditionCounterCreator") // Check for children
-                //{
-                //    var conditionsPtr = Memory.ReadPtr(condition + Offsets.QuestConditionCounterCreator.Conditions);
-                //    var conditionsListPtr = Memory.ReadPtr(conditionsPtr + Offsets.QuestConditionsContainer.ConditionsList);
-                //    using var counterList = MonoList<ulong>.Create(conditionsListPtr, true);
-                //    foreach (var childCond in counterList)
-                //        GetQuestConditions(questID, childCond, completedConditions, masterItems, masterLocations);
-                //}
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[QuestManager] ERROR parsing Condition(s): {ex}");
+                try
+                {
+                    if (objective is null)
+                        continue;
+
+                    // Skip objectives that are already completed (by condition id)
+                    if (!string.IsNullOrEmpty(objective.Id) && completedConditions.Contains(objective.Id))
+                        continue;
+                    //skip Type: buildWeapon, giveQuestItem, extract, shoot, traderLevel, giveItem
+                    if (objective.Type.Equals("buildWeapon", StringComparison.OrdinalIgnoreCase)
+                        || objective.Type.Equals("giveQuestItem", StringComparison.OrdinalIgnoreCase)
+                        || objective.Type.Equals("extract", StringComparison.OrdinalIgnoreCase)
+                        || objective.Type.Equals("shoot", StringComparison.OrdinalIgnoreCase)
+                        || objective.Type.Equals("traderLevel", StringComparison.OrdinalIgnoreCase)
+                        || objective.Type.Equals("giveItem", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    // Item Pickup Objectives findItem and findQuestItem
+                    if (objective.Type.Equals("findItem", StringComparison.OrdinalIgnoreCase)
+                        || objective.Type.Equals("findQuestItem", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (objective.Item?.Id is not null)
+                        {
+                            masterItems.Add(objective.Item.Id);
+                            _ = _items.GetOrAdd(objective.Item.Id, 0);
+                        }
+                    }
+                    // Location Visit Objectives visitLocation
+                    else if (objective.Type.Equals("visit", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (objective.Zones is not null && objective.Zones.Count > 0)
+                        {
+                            if (_mapToId.TryGetValue(MapID, out var currentMapId) && _questZones.TryGetValue(currentMapId, out var zonesForMap))
+                            {
+                                foreach (var zone in objective.Zones)
+                                {
+                                    if (zone?.Id is string zoneId && zonesForMap.TryGetValue(zoneId, out var pos))
+                                    {
+                                        // Make a stable key for this quest-objective-zone triple
+                                        var locKey = $"{questId}:{objective.Id}:{zoneId}";
+                                        _locations.GetOrAdd(locKey, _ => new QuestLocation(questId, objective.Id, pos));
+                                        masterLocations.Add(locKey);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else if (objective.Type.Equals("mark", StringComparison.OrdinalIgnoreCase) || objective.Type.Equals("plantItem", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (_mapToId.TryGetValue(MapID, out var currentMapId) & _questZones.TryGetValue(currentMapId,out var zonesForMap))
+                        {
+                            if (objective.MarkerItem?.Id is string markerId && zonesForMap.TryGetValue(markerId, out var pos))
+                            {
+                                // Make a stable key for this quest-objective-marker triple
+                                var locKey = $"{questId}:{objective.Id}:{markerId}";
+                                _locations.GetOrAdd(locKey, _ => new QuestLocation(questId, objective.Id, pos));
+                                masterLocations.Add(locKey);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //Debug.WriteLine($"[QuestManager] Unhandled Objective Type: {objective.Type} in Quest ID: {task.Id} {task.Name}");
+                    }
+
+                }
+                catch
+                {
+                }
             }
         }
     }
-
-
 }

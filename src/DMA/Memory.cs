@@ -35,6 +35,7 @@ using LoneEftDmaRadar.Tarkov.GameWorld.Exits;
 using LoneEftDmaRadar.Tarkov.GameWorld.Explosives;
 using LoneEftDmaRadar.Tarkov.GameWorld.Loot;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
+using LoneEftDmaRadar.Tarkov.GameWorld.Quests;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using VmmSharpEx;
 using VmmSharpEx.Extensions;
@@ -74,7 +75,8 @@ namespace LoneEftDmaRadar.DMA
         public static LocalGameWorld Game { get; private set; }
         public static CameraManager CameraManager { get; internal set; }
 
-        private static CameraManager _cameraManager;
+        public static CameraManager _cameraManager;
+        public static QuestManager QuestManager => Game?.QuestManager;
 
         internal static async Task ModuleInitAsync()
         {

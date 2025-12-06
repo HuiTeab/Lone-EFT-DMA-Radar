@@ -20,39 +20,39 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
 
         public QuestLocation(string questID, string target, Vector3 position)
         {
-            //if (TarkovDataManager.TaskData.TryGetValue(questID, out var q))
-            //    Name = q.Name;
-            //else
-            //    Name = target;
-            //_position = position;
+            if (TarkovDataManager.TaskData.TryGetValue(questID, out var q))
+                Name = q.Name;
+            else
+                Name = target;
+            _position = position;
         }
 
         public void Draw(SKCanvas canvas, EftMapParams mapParams, LocalPlayer localPlayer)
         {
             var point = Position.ToMapPos(mapParams.Map).ToZoomedPos(mapParams);
             MouseoverPosition = new Vector2(point.X, point.Y);
-            //var heightDiff = Position.Y - localPlayer.Position.Y;
-            //SKPaints.ShapeOutline.StrokeWidth = 2f;
-            //if (heightDiff > 1.45) // marker is above player
-            //{
-            //    using var path = point.GetUpArrow();
-            //    canvas.DrawPath(path, SKPaints.ShapeOutline);
-            //    canvas.DrawPath(path, SKPaints.QuestHelperPaint);
-            //}
-            //else if (heightDiff < -1.45) // marker is below player
-            //{
-            //    using var path = point.GetDownArrow();
-            //    canvas.DrawPath(path, SKPaints.ShapeOutline);
-            //    canvas.DrawPath(path, SKPaints.QuestHelperPaint);
-            //}
-            //else // marker is level with player
-            //{
-            //    var squareSize = 8 * App.Config.UI.UIScale;
-            //    canvas.DrawRect(point.X, point.Y,
-            //        squareSize, squareSize, SKPaints.ShapeOutline);
-            //    canvas.DrawRect(point.X, point.Y,
-            //        squareSize, squareSize, SKPaints.QuestHelperPaint);
-            //}
+            var heightDiff = Position.Y - localPlayer.Position.Y;
+            SKPaints.ShapeOutline.StrokeWidth = 2f;
+            if (heightDiff > 1.45) // marker is above player
+            {
+                using var path = point.GetUpArrow();
+                canvas.DrawPath(path, SKPaints.ShapeOutline);
+                canvas.DrawPath(path, SKPaints.QuestHelperPaint);
+            }
+            else if (heightDiff < -1.45) // marker is below player
+            {
+                using var path = point.GetDownArrow();
+                canvas.DrawPath(path, SKPaints.ShapeOutline);
+                canvas.DrawPath(path, SKPaints.QuestHelperPaint);
+            }
+            else // marker is level with player
+            {
+                var squareSize = 8 * App.Config.UI.UIScale;
+                canvas.DrawRect(point.X, point.Y,
+                    squareSize, squareSize, SKPaints.ShapeOutline);
+                canvas.DrawRect(point.X, point.Y,
+                    squareSize, squareSize, SKPaints.QuestHelperPaint);
+            }
         }
 
         public Vector2 MouseoverPosition { get; set; }

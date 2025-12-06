@@ -32,6 +32,7 @@ using LoneEftDmaRadar.Tarkov.GameWorld.Exits;
 using LoneEftDmaRadar.Tarkov.GameWorld.Explosives;
 using LoneEftDmaRadar.Tarkov.GameWorld.Loot;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
+using LoneEftDmaRadar.Tarkov.GameWorld.Quests;
 using LoneEftDmaRadar.UI.Loot;
 using LoneEftDmaRadar.UI.Radar.Maps;
 using LoneEftDmaRadar.UI.Radar.Views;
@@ -323,6 +324,17 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                         foreach (var exit in exits)
                         {
                             exit.Draw(canvas, mapParams, localPlayer);
+                        }
+                    }
+
+                    if (App.Config.QuestHelper.Enabled)
+                    {
+                        if (Memory.QuestManager?.LocationConditions?.Values is IEnumerable<QuestLocation> questLocations)
+                        {
+                            foreach (var loc in questLocations)
+                            {
+                                loc.Draw(canvas, mapParams, localPlayer);
+                            }
                         }
                     }
 

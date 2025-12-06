@@ -109,9 +109,38 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
                     ct.ThrowIfCancellationRequested();
                     try
                     {
+                        //qDataEntry should be public class QuestStatusData : Object
+                        var qStatus = Memory.ReadValue<int>(qDataEntry + Offsets.QuestData.Status);
+                        if (qStatus != 2)
+                        {
+                            continue;
+                        }
+                        var qId = Memory.ReadUnityString(Memory.ReadPtr(qDataEntry + Offsets.QuestData.Id));
+                        //qID should be Task ID
+                        if (!TarkovDataManager.TaskData.TryGetValue(qId, out var task))
+                        {
+                            continue;
+                        }
+                        Debug.WriteLine($"[QuestManager] Processing Quest ID: {task.Id} {task.Name}");
+                        using var completedHS = UnityHashSet<MongoID>.Create(Memory.ReadPtr(qDataEntry + Offsets.QuestData.CompletedConditions), true);
+                        using var completedConditions = new PooledSet<string>(StringComparer.OrdinalIgnoreCase);
+                        foreach (var c in completedHS)
+                        {
+                            var completedCond = c.Value.ReadString();
+                            if (task.Objectives is not null)
+                            {
+                                foreach (var obj in task.Objectives)
+                                {
+                                    if (string.Equals(obj?.Id, completedCond, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        //if condition is completed we can use it to find non completed conditions
 
-
+                                    }
+                                }
+                            }
+                        }
                     }
+
                     catch
                     {
 

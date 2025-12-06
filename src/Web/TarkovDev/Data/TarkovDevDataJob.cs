@@ -55,6 +55,8 @@ SOFTWARE.
  *
 */
 
+using static LoneEftDmaRadar.Web.TarkovDev.Data.TarkovDevDataQuery;
+
 namespace LoneEftDmaRadar.Web.TarkovDev.Data
 {
     internal static class TarkovDevDataJob
@@ -132,7 +134,7 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
             public List<object> PlayerLevels { get; set; }
 
             [JsonPropertyName("tasks")]
-            public List<object> Tasks { get; set; }
+            public List<TaskElement> Tasks { get; set; }
         }
 
         private sealed class OutgoingItem

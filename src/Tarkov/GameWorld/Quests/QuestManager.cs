@@ -68,6 +68,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
         /// All current quests.
         /// </summary>
         public IReadOnlyDictionary<string, QuestEntry> Quests => _quests;
+
         private readonly ConcurrentDictionary<string, byte> _items = new(StringComparer.OrdinalIgnoreCase); // Key = Item ID
         /// <summary>
         /// All item BSG ID's that we need to pickup.
@@ -223,7 +224,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
                         }
                     }
                     // Location Visit Objectives visitLocation
-                    else if (objective.Type.Equals("visit", StringComparison.OrdinalIgnoreCase))
+                    else if (objective.Type.Equals("visit", StringComparison.OrdinalIgnoreCase) || objective.Type.Equals("mark", StringComparison.OrdinalIgnoreCase) || objective.Type.Equals("plantItem", StringComparison.OrdinalIgnoreCase))
                     {
                         if (objective.Zones is not null && objective.Zones.Count > 0)
                         {
@@ -242,19 +243,20 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
                             }
                         }
                     }
-                    else if (objective.Type.Equals("mark", StringComparison.OrdinalIgnoreCase) || objective.Type.Equals("plantItem", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (_mapToId.TryGetValue(MapID, out var currentMapId) & _questZones.TryGetValue(currentMapId,out var zonesForMap))
-                        {
-                            if (objective.MarkerItem?.Id is string markerId && zonesForMap.TryGetValue(markerId, out var pos))
-                            {
-                                // Make a stable key for this quest-objective-marker triple
-                                var locKey = $"{questId}:{objective.Id}:{markerId}";
-                                _locations.GetOrAdd(locKey, _ => new QuestLocation(questId, objective.Id, pos));
-                                masterLocations.Add(locKey);
-                            }
-                        }
-                    }
+                    //else if (objective.Type.Equals("mark", StringComparison.OrdinalIgnoreCase) || objective.Type.Equals("plantItem", StringComparison.OrdinalIgnoreCase))
+                    //{
+                    //    if (_mapToId.TryGetValue(MapID, out var currentMapId) & _questZones.TryGetValue(currentMapId,out var zonesForMap))
+                    //    {
+                    //        if (objective.MarkerItem?.Id is string markerId && zonesForMap.TryGetValue(markerId, out var pos))
+                    //        {
+                    //            // Make a stable key for this quest-objective-marker triple
+                    //            var locKey = $"{questId}:{objective.Id}:{markerId}";
+                    //            Debug.WriteLine($"[QuestManager] Adding Marker Location Key: {locKey} for Quest ID: {task.Id} {task.Name}");
+                    //            _locations.GetOrAdd(locKey, _ => new QuestLocation(questId, objective.Id, pos));
+                    //            masterLocations.Add(locKey);
+                    //        }
+                    //    }
+                    //}
                     else
                     {
                         //Debug.WriteLine($"[QuestManager] Unhandled Objective Type: {objective.Type} in Quest ID: {task.Id} {task.Name}");

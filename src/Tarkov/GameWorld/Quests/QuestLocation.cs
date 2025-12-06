@@ -17,13 +17,47 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
         /// Name of this quest.
         /// </summary>
         public string Name { get; }
+        public string Type { get; }
+        public Vector2 MouseoverPosition { get; set; }
+
+        private readonly Vector3 _position;
+        public ref readonly Vector3 Position => ref _position;
 
         public QuestLocation(string questID, string target, Vector3 position)
         {
+            // Resolve quest name and objective type (if available).
             if (TarkovDataManager.TaskData.TryGetValue(questID, out var q))
-                Name = q.Name;
+            {
+                Name = q.Name ?? target;
+
+                // Attempt to find the objective that corresponds to 'target' and extract its Type.
+                string foundType = null;
+                try
+                {
+                    if (q.Objectives is not null)
+                    {
+                        var obj = q.Objectives.FirstOrDefault(o =>
+                            !string.IsNullOrEmpty(o.Id) && string.Equals(o.Id, target, StringComparison.OrdinalIgnoreCase)
+                            || (o.MarkerItem?.Id is not null && string.Equals(o.MarkerItem.Id, target, StringComparison.OrdinalIgnoreCase))
+                            || (o.Zones?.Any(z => string.Equals(z.Id, target, StringComparison.OrdinalIgnoreCase)) == true)
+                        );
+                        foundType = obj?.Type;
+                    }
+                }
+                catch
+                {
+                    // Swallow any unexpected structure errors - fall back to target string.
+                }
+
+                Type = !string.IsNullOrEmpty(foundType) ? foundType : target;
+            }
             else
+            {
+                // Fallback when TaskData doesn't contain the quest
                 Name = target;
+                Type = target;
+            }
+
             _position = position;
         }
 
@@ -55,14 +89,14 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
             }
         }
 
-        public Vector2 MouseoverPosition { get; set; }
-
         public void DrawMouseover(SKCanvas canvas, EftMapParams mapParams, LocalPlayer localPlayer)
         {
-            Position.ToMapPos(mapParams.Map).ToZoomedPos(mapParams).DrawMouseoverText(canvas, Name);
+            List<string> lines = new();
+            lines.Add(Name);
+            if (!string.IsNullOrEmpty(Type) && !string.Equals(Type, Name, StringComparison.OrdinalIgnoreCase))
+                lines.Add($"Type: {Type}");
+            Position.ToMapPos(mapParams.Map).ToZoomedPos(mapParams).DrawMouseoverText(canvas, lines.ToArray());
         }
 
-        private readonly Vector3 _position;
-        public ref readonly Vector3 Position => ref _position;
     }
 }

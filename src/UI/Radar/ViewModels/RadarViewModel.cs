@@ -47,24 +47,10 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
     {
         #region Static Interface
 
-        /// <summary>
-        /// Game has started and Radar is starting up...
-        /// </summary>
         private static bool Starting => Memory.Starting;
-
-        /// <summary>
-        /// Radar has found Escape From Tarkov process and is ready.
-        /// </summary>
         private static bool Ready => Memory.Ready;
-
-        /// <summary>
-        /// Radar has found Local Game World, and a Raid Instance is active.
-        /// </summary>
         private static bool InRaid => Memory.InRaid;
 
-        /// <summary>
-        /// Map Identifier of Current Map.
-        /// </summary>
         private static string MapID
         {
             get
@@ -75,53 +61,24 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
         }
 
-        /// <summary>
-        /// LocalPlayer (who is running Radar) 'Player' object.
-        /// </summary>
         private static LocalPlayer LocalPlayer => Memory.LocalPlayer;
 
-        /// <summary>
-        /// All Filtered FilteredLoot on the map.
-        /// </summary>
         private static IEnumerable<LootItem> FilteredLoot => Memory.Loot?.FilteredLoot;
-        /// <summary>
-        /// All Static Containers on the map.
-        /// </summary>
         private static IEnumerable<StaticLootContainer> Containers => Memory.Loot?.StaticContainers;
-
-        /// <summary>
-        /// All Players in Local Game World (including dead/exfil'd) 'Player' collection.
-        /// </summary>
         private static IReadOnlyCollection<AbstractPlayer> AllPlayers => Memory.Players;
-
-        /// <summary>
-        /// Contains all 'Hot' explosives in Local Game World, and their position(s).
-        /// </summary>
         private static IReadOnlyCollection<IExplosiveItem> Explosives => Memory.Explosives;
-
-        /// <summary>
-        /// Contains all 'Exits' in Local Game World, and their status/position(s).
-        /// </summary>
         private static IReadOnlyCollection<IExitPoint> Exits => Memory.Exits;
 
-        /// <summary>
-        /// Item Search Filter has been set/applied.
-        /// </summary>
         private static bool SearchFilterIsSet =>
             !string.IsNullOrEmpty(LootFilter.SearchString);
 
-        /// <summary>
-        /// True if corpses are visible as loot.
-        /// </summary>
         public static bool LootCorpsesVisible => App.Config.Loot.Enabled && !App.Config.Loot.HideCorpses && !SearchFilterIsSet;
 
-        /// <summary>
-        /// Contains all 'mouse-overable' items.
-        /// </summary>
         private static IEnumerable<IMouseoverEntity> MouseOverItems
         {
             get
             {
+
                 var players = AllPlayers
                     .Where(x => x is not Tarkov.GameWorld.Player.LocalPlayer
                         && !x.HasExfild && (!LootCorpsesVisible || x.IsAlive)) ??
@@ -132,19 +89,20 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 var containers = App.Config.Loot.Enabled && App.Config.Containers.Enabled ?
                     Containers ?? Enumerable.Empty<IMouseoverEntity>() : Enumerable.Empty<IMouseoverEntity>();
                 var exits = Exits ?? Enumerable.Empty<IMouseoverEntity>();
+                var quests = App.Config.QuestHelper.Enabled
+                    ? Memory.QuestManager?.LocationConditions?.Values?.OfType<IMouseoverEntity>() ?? Enumerable.Empty<IMouseoverEntity>()
+                    : Enumerable.Empty<IMouseoverEntity>();
+
 
                 if (SearchFilterIsSet && !(MainWindow.Instance?.Radar?.Overlay?.ViewModel?.HideCorpses ?? false)) // Item Search
                     players = players.Where(x =>
                         x.LootObject is null || !loot.Contains(x.LootObject)); // Don't show both corpse objects
 
-                var result = loot.Concat(containers).Concat(players).Concat(exits);
+                var result = loot.Concat(containers).Concat(players).Concat(exits).Concat(quests);
                 return result.Any() ? result : null;
             }
         }
 
-        /// <summary>
-        /// Currently 'Moused Over' Group.
-        /// </summary>
         public static int? MouseoverGroup { get; private set; }
 
         #endregion
@@ -159,17 +117,8 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         private Vector2 _lastMousePosition;
         private Vector2 _mapPanPosition;
 
-        /// <summary>
-        /// Skia Radar Viewport.
-        /// </summary>
         public SKGLElement Radar => _parent.Radar;
-        /// <summary>
-        /// Aimview Widget Viewport.
-        /// </summary>
         public AimviewWidget AimviewWidget { get; private set; }
-        /// <summary>
-        /// Player Info Widget Viewport.
-        /// </summary>
         public PlayerInfoWidget InfoWidget { get; private set; }
 
         public RadarViewModel(RadarTab parent)
@@ -183,9 +132,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             _ = RunPeriodicTimerAsync();
         }
 
-        /// <summary>
-        /// Complete Skia/GL Setup after GL Context is initialized.
-        /// </summary>
         private async Task OnStartupAsync()
         {
             await _parent.Dispatcher.Invoke(async () =>
@@ -220,39 +166,30 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
 
         #region Render Loop
 
-        /// <summary>
-        /// Main Render Loop for Radar.
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
         private void Radar_PaintSurface(object sender, SKPaintGLSurfaceEventArgs e)
         {
-            // Working vars
             var isStarting = Starting;
             var isReady = Ready;
             var inRaid = InRaid;
             var canvas = e.Surface.Canvas;
-            // Begin draw
             try
             {
-                canvas.Clear(); // Clear canvas
-                Interlocked.Increment(ref _fps); // Increment FPS counter
-                string mapID = MapID; // Cache ref
-                if (inRaid && LocalPlayer is LocalPlayer localPlayer && EftMapManager.LoadMap(mapID) is IEftMap map) // LocalPlayer is in a raid -> Begin Drawing...
+                canvas.Clear();
+                Interlocked.Increment(ref _fps);
+                string mapID = MapID;
+                if (inRaid && LocalPlayer is LocalPlayer localPlayer && EftMapManager.LoadMap(mapID) is IEftMap map)
                 {
                     SetMapName();
                     ArgumentNullException.ThrowIfNull(map, nameof(map));
-                    var closestToMouse = _mouseOverItem; // cache ref
-                    // Get LocalPlayer location
+                    var closestToMouse = _mouseOverItem;
                     var localPlayerPos = localPlayer.Position;
                     var localPlayerMapPos = localPlayerPos.ToMapPos(map.Config);
                     if (MainWindow.Instance?.Radar?.MapSetupHelper?.ViewModel is MapSetupHelperViewModel mapSetup && mapSetup.IsVisible)
                     {
                         mapSetup.Coords = $"Unity X,Y,Z: {localPlayerPos.X},{localPlayerPos.Y},{localPlayerPos.Z}";
                     }
-                    // Prepare to draw Game Map
-                    EftMapParams mapParams; // Drawing Source
-                    if (MainWindow.Instance?.Radar?.Overlay?.ViewModel?.IsMapFreeEnabled ?? false) // Map fixed location, click to pan map
+                    EftMapParams mapParams;
+                    if (MainWindow.Instance?.Radar?.Overlay?.ViewModel?.IsMapFreeEnabled ?? false)
                     {
                         if (_mapPanPosition == default)
                         {
@@ -263,24 +200,23 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                     else
                     {
                         _mapPanPosition = default;
-                        mapParams = map.GetParameters(Radar, App.Config.UI.Zoom, ref localPlayerMapPos); // Map auto follow LocalPlayer
+                        mapParams = map.GetParameters(Radar, App.Config.UI.Zoom, ref localPlayerMapPos);
                     }
                     var info = e.RawInfo;
-                    var mapCanvasBounds = new SKRect() // Drawing Destination
+                    var mapCanvasBounds = new SKRect()
                     {
                         Left = info.Rect.Left,
                         Right = info.Rect.Right,
                         Top = info.Rect.Top,
                         Bottom = info.Rect.Bottom
                     };
-                    // Draw Map
                     map.Draw(canvas, localPlayer.Position.Y, mapParams.Bounds, mapCanvasBounds);
-                    // Draw other players
+
                     var allPlayers = AllPlayers?
-                        .Where(x => !x.HasExfild); // Skip exfil'd players
-                    if (App.Config.Loot.Enabled) // Draw loot (if enabled)
+                        .Where(x => !x.HasExfild);
+                    if (App.Config.Loot.Enabled)
                     {
-                        if (FilteredLoot is IEnumerable<LootItem> loot) // Draw important loot last (on top)
+                        if (FilteredLoot is IEnumerable<LootItem> loot)
                         {
                             foreach (var item in loot)
                             {
@@ -291,7 +227,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                             MainWindow.Instance?.Settings?.ViewModel is SettingsViewModel vm &&
                             Containers is IEnumerable<StaticLootContainer> containers)
                         {
-                            foreach (var container in containers) // Draw static loot containers
+                            foreach (var container in containers)
                             {
                                 if (vm.ContainerIsTracked(container.ID ?? "NULL"))
                                 {
@@ -302,7 +238,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                     }
 
                     if (App.Config.UI.ShowHazards &&
-                        TarkovDataManager.MapData.TryGetValue(mapID, out var mapData) && mapData.Hazards is not null) // Draw Hazards
+                        TarkovDataManager.MapData.TryGetValue(mapID, out var mapData) && mapData.Hazards is not null)
                     {
                         foreach (var hazard in mapData.Hazards)
                         {
@@ -311,7 +247,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                         }
                     }
 
-                    if (Explosives is IReadOnlyCollection<IExplosiveItem> explosives) // Draw grenades
+                    if (Explosives is IReadOnlyCollection<IExplosiveItem> explosives)
                     {
                         foreach (var explosive in explosives)
                         {
@@ -340,14 +276,14 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
 
                     if (allPlayers is not null)
                     {
-                        foreach (var player in allPlayers) // Draw PMCs
+                        foreach (var player in allPlayers)
                         {
                             if (player == localPlayer)
-                                continue; // Already drawn local player, move on
+                                continue;
                             player.Draw(canvas, mapParams, localPlayer);
                         }
                     }
-                    if (App.Config.UI.ConnectGroups) // Connect Groups together
+                    if (App.Config.UI.ConnectGroups)
                     {
                         var groupedPlayers = allPlayers?
                             .Where(x => x.IsHumanHostileActive && x.GroupID != -1);
@@ -373,20 +309,19 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                         }
                     }
 
-                    // Draw LocalPlayer over everything else
                     localPlayer.Draw(canvas, mapParams, localPlayer);
 
-                    if (allPlayers is not null && App.Config.InfoWidget.Enabled) // Players Overlay
+                    if (allPlayers is not null && App.Config.InfoWidget.Enabled)
                     {
                         InfoWidget?.Draw(canvas, localPlayer, allPlayers);
                     }
-                    closestToMouse?.DrawMouseover(canvas, mapParams, localPlayer); // Mouseover Item
-                    if (App.Config.AimviewWidget.Enabled) // Aimview Widget
+                    closestToMouse?.DrawMouseover(canvas, mapParams, localPlayer);
+                    if (App.Config.AimviewWidget.Enabled)
                     {
                         AimviewWidget?.Draw(canvas);
                     }
                 }
-                else // LocalPlayer is *not* in a Raid -> Display Reason
+                else
                 {
                     if (!isStarting)
                         GameNotRunningStatus(canvas);
@@ -396,13 +331,13 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                         WaitingForRaidStatus(canvas);
                 }
             }
-            catch (Exception ex) // Log rendering errors
+            catch (Exception ex)
             {
                 Debug.WriteLine($"***** CRITICAL RENDER ERROR: {ex}");
             }
             finally
             {
-                canvas.Flush(); // commit frame to GPU
+                canvas.Flush();
             }
         }
 
@@ -410,30 +345,23 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
 
         #region Status Messages
 
-        private int _statusOrder = 1; // Backing field dont use
-        /// <summary>
-        /// Status order for rotating status message animation.
-        /// </summary>
+        private int _statusOrder = 1;
         private int StatusOrder
         {
             get => _statusOrder;
             set
             {
-                if (_statusOrder >= 3) // Reset status order to beginning
+                if (_statusOrder >= 3)
                 {
                     _statusOrder = 1;
                 }
-                else // Increment
+                else
                 {
                     _statusOrder++;
                 }
             }
         }
 
-        /// <summary>
-        /// Display 'Game Process Not Running!' status message.
-        /// </summary>
-        /// <param name="canvas"></param>
         private static void GameNotRunningStatus(SKCanvas canvas)
         {
             const string notRunning = "Game Process Not Running!";
@@ -445,10 +373,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 SKFonts.UILarge,
                 SKPaints.TextRadarStatus);
         }
-        /// <summary>
-        /// Display 'Starting Up...' status message.
-        /// </summary>
-        /// <param name="canvas"></param>
         private void StartingUpStatus(SKCanvas canvas)
         {
             const string startingUp1 = "Starting Up.";
@@ -466,10 +390,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 SKFonts.UILarge,
                 SKPaints.TextRadarStatus);
         }
-        /// <summary>
-        /// Display 'Waiting for Raid Start...' status message.
-        /// </summary>
-        /// <param name="canvas"></param>
         private void WaitingForRaidStatus(SKCanvas canvas)
         {
             const string waitingFor1 = "Waiting for Raid Start.";
@@ -492,9 +412,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
 
         #region Methods
 
-        /// <summary>
-        /// Purge SKResources to free up memory.
-        /// </summary>
         public void PurgeSKResources()
         {
             _parent.Dispatcher.Invoke(() =>
@@ -503,9 +420,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             });
         }
 
-        /// <summary>
-        /// Set the Map Name on Radar Tab.
-        /// </summary>
         private static void SetMapName()
         {
             string map = EftMapManager.Map?.Config?.Name;
@@ -517,28 +431,20 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
         }
 
-        /// <summary>
-        /// Set the FPS Counter.
-        /// </summary>
         private async Task RunPeriodicTimerAsync()
         {
             while (await _periodicTimer.WaitForNextTickAsync())
             {
-                // Increment status order
                 StatusOrder++;
-                // Parse FPS and set window title
-                int fps = Interlocked.Exchange(ref _fps, 0); // Get FPS -> Reset FPS counter
+                int fps = Interlocked.Exchange(ref _fps, 0);
                 string title = $"{App.Name} ({fps} fps)";
                 if (MainWindow.Instance is MainWindow mainWindow)
                 {
-                    mainWindow.Title = title; // Set new window title
+                    mainWindow.Title = title;
                 }
             }
         }
 
-        /// <summary>
-        /// Zooms the map 'in'.
-        /// </summary>
         public void ZoomIn(int amt)
         {
             if (App.Config.UI.Zoom - amt >= 1)
@@ -551,9 +457,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
         }
 
-        /// <summary>
-        /// Zooms the map 'out'.
-        /// </summary>
         public void ZoomOut(int amt)
         {
             if (App.Config.UI.Zoom + amt <= 200)
@@ -582,7 +485,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
 
         private void Radar_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            // get mouse pos relative to the Radar control
             var element = sender as IInputElement;
             var pt = e.GetPosition(element);
             var mouseX = (float)pt.X;
@@ -614,20 +516,19 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
             if (MainWindow.Instance?.Radar?.Overlay?.ViewModel is RadarOverlayViewModel vm && vm.IsLootOverlayVisible)
             {
-                vm.IsLootOverlayVisible = false; // Hide FilteredLoot Overlay on Mouse Down
+                vm.IsLootOverlayVisible = false;
             }
         }
 
         private void Radar_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            // get mouse pos relative to the Radar control
             var element = sender as IInputElement;
             var pt = e.GetPosition(element);
             var mouseX = (float)pt.X;
             var mouseY = (float)pt.Y;
             var mouse = new Vector2(mouseX, mouseY);
 
-            if (_mouseDown && MainWindow.Instance?.Radar?.Overlay?.ViewModel is RadarOverlayViewModel vm && vm.IsMapFreeEnabled) // panning
+            if (_mouseDown && MainWindow.Instance?.Radar?.Overlay?.ViewModel is RadarOverlayViewModel vm && vm.IsMapFreeEnabled)
             {
                 var deltaX = -(mouseX - _lastMousePosition.X);
                 var deltaY = -(mouseY - _lastMousePosition.Y);
@@ -651,7 +552,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                     return;
                 }
 
-                // find closest
                 var closest = items.Aggregate(
                     (x1, x2) => Vector2.Distance(x1.MouseoverPosition, mouse)
                              < Vector2.Distance(x2.MouseoverPosition, mouse)
@@ -670,7 +570,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                         MouseoverGroup = (player.IsHumanHostile && player.GroupID != -1)
                             ? player.GroupID
                             : (int?)null;
-                        if (LootCorpsesVisible && player.LootObject is LootCorpse playerCorpse) // Fix overlapping objects
+                        if (LootCorpsesVisible && player.LootObject is LootCorpse playerCorpse)
                         {
                             _mouseOverItem = playerCorpse;
                         }
@@ -690,6 +590,11 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
 
                     case IExitPoint exit:
                         _mouseOverItem = closest;
+                        MouseoverGroup = null;
+                        break;
+
+                    case QuestLocation questLoc:
+                        _mouseOverItem = questLoc;
                         MouseoverGroup = null;
                         break;
 

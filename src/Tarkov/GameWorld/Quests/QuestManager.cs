@@ -6,6 +6,7 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Text;
+using VmmSharpEx.Extensions;
 using static VmmSharpEx.Vmm;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
@@ -108,64 +109,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
                     ct.ThrowIfCancellationRequested();
                     try
                     {
-                        var qDataEntryType = ObjectClass.ReadName(qDataEntry);
-                        //Debug.WriteLine($"[QuestManager] Processing Quest Data Entry Type: {qDataEntryType:X} at {qDataEntry:X}");
-                        //var qStatusPtr = Memory.ReadPtrChain(qDataEntry, false, new[] {Offsets.QuestData.Status, Offsets.QuestStatus.Value});
-                        var qStatus = Memory.ReadValue<int>(qDataEntry + Offsets.QuestData.Status);
-                        if (qStatus != 2) {
-                            Debug.WriteLine($"[QuestManager] Skipping Quest Status: {qStatus}");
-                            continue;
-                        }// 2 == Started
-                        Debug.WriteLine($"[QuestManager] Processing Quest Data Entry Type: {qDataEntryType:X} at {qDataEntry:X}");
-                        var qIDPtr = Memory.ReadPtr(qDataEntry + Offsets.QuestData.Id);
-                        var qID = Memory.ReadUnityString(qIDPtr);
-                        Debug.WriteLine($"[QuestManager] Found Active Quest ID: {qID} Status: {qStatus}");
-                        if (TarkovDataManager.TaskData.TryGetValue(qID, out var task))
-                        {
-                            Debug.WriteLine($"[QuestManager] Processing Quest ID: {qID} - {task.Id} {task.Name}");
-                        }
-                        var qTemplate = Memory.ReadPtr(qDataEntry + Offsets.QuestData.Template);
-                        var qTemplateName = ObjectClass.ReadName(qTemplate);
-                        Debug.WriteLine($"[QuestManager] Quest Template Name: {qTemplateName}");
-                        var qConditions = Memory.ReadPtr(qTemplate + Offsets.QuestTemplate.Conditions);
-                        var qConditionsName = ObjectClass.ReadName(qConditions);
-                        Debug.WriteLine($"[QuestManager] Quest Conditions Name: {qConditionsName}");
-                        var qConditionsCount = Memory.ReadValue<int>(qConditions + 0x20);
-                        Debug.WriteLine($"[QuestManager] Quest '{qID}' Conditions Count: {qConditionsCount}");
-                        Debug.WriteLine($"[QuestManager] Processed quest!!!");
-                        //var completedPtr = Memory.ReadPtr(qDataEntry + Offsets.QuestData.CompletedConditions);
-                        //using var completedHS = UnityHashSet<MongoID>.Create(completedPtr, true);
-                        //using var completedConditions = new PooledSet<string>(StringComparer.OrdinalIgnoreCase);
-                        //foreach (var c in completedHS)
-                        //{
-                        //    var completedCond = c.Value.ReadString();
-                        //    completedConditions.Add(completedCond);
-                        //}
-                        //var qIDPtr = Memory.ReadPtr(qDataEntry + Offsets.QuestData.Id);
-                        //var qID = Memory.ReadUnityString(qIDPtr);
-                        //Debug.WriteLine($"[QuestManager] Processing Quest ID: {qID}");
-                        //masterQuests.Add(qID);
-                        //_ = _quests.GetOrAdd(
-                        //    qID,
-                        //    id => new QuestEntry(id));
-                        //// Check for blacklisted quests
-                        //if (App.Config.QuestHelper.BlacklistedQuests.ContainsKey(qID))
-                        //    continue;
-                        //var qTemplate = Memory.ReadPtr(qDataEntry + Offsets.QuestData.Template);
-                        //var qConditions = Memory.ReadPtr(qTemplate + Offsets.QuestTemplate.Conditions);
-                        //var qConditionsCount = Memory.ReadValue<int>(qConditions + 0x20);
-                        //Debug.WriteLine($"[QuestManager] Quest '{qID}' Count: {qConditionsCount}");
-                        //using var qCondDict = UnityDictionary<int, ulong>.Create(qConditions, true); //public sealed class ConditionsDict : Dictionary<EQuestStatus, ConditionCollection>
-                        //foreach (var qDicCondEntry in qCondDict)
-                        //{
-                        //    var condListPtr = Memory.ReadPtr(qDicCondEntry.Value + 0x70);
-                        //    //public sealed class ConditionCollection : UpdatableBindableList<Condition>
-                        //    // Token: 0x04013D8C RID: 81292
-                        //    //[Token(Token = "0x4013D8C")]
-                        //    //[FieldOffset(Offset = "0x70")]
-                        //    //private IEnumerable<Condition> _necessaryConditions;
-
-                        //}
 
 
                     }

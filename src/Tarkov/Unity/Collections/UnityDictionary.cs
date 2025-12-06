@@ -27,22 +27,22 @@ SOFTWARE.
 */
 
 using Collections.Pooled;
+using System.Runtime.InteropServices;
+using VmmSharpEx.Extensions;
 
 namespace LoneEftDmaRadar.Tarkov.Unity.Collections
 {
     /// <summary>
-    /// DMA Wrapper for a C# Dictionary
-    /// Must initialize before use. Must dispose after use.
-    /// </summary>
     /// <typeparam name="TKey">Key Type between 1-8 bytes.</typeparam>
     /// <typeparam name="TValue">Value Type between 1-8 bytes.</typeparam>
     public sealed class UnityDictionary<TKey, TValue> : PooledMemory<UnityDictionary<TKey, TValue>.MemDictEntry>
         where TKey : unmanaged
         where TValue : unmanaged
     {
-        public const uint CountOffset = 0x40;
+        public const uint CountOffset = 0x20;
         public const uint EntriesOffset = 0x18;
-        public const uint EntriesStartOffset = 0x20;
+        private const ulong EntriesStartRelative = 0x28;
+        private const int EntryStride = 0x18;
 
         private UnityDictionary() : base(0) { }
         private UnityDictionary(int count) : base(count) { }
@@ -64,8 +64,17 @@ namespace LoneEftDmaRadar.Tarkov.Unity.Collections
                 {
                     return dict;
                 }
-                var dictBase = LoneEftDmaRadar.DMA.Memory.ReadPtr(addr + EntriesOffset, useCache) + EntriesStartOffset;
-                LoneEftDmaRadar.DMA.Memory.ReadSpan(dictBase, dict.Span, useCache); // Single read into mem buffer
+
+                var entriesPtr = LoneEftDmaRadar.DMA.Memory.ReadPtr(addr + EntriesOffset, useCache);
+                if (!entriesPtr.IsValidUserVA())
+                {
+                    dict.Dispose();
+                    throw new InvalidOperationException("UnityDictionary entries pointer is invalid.");
+                }
+
+                var dictBase = entriesPtr + EntriesStartRelative;
+
+                LoneEftDmaRadar.DMA.Memory.ReadSpan(dictBase, dict.Span, useCache);
                 return dict;
             }
             catch
@@ -75,12 +84,12 @@ namespace LoneEftDmaRadar.Tarkov.Unity.Collections
             }
         }
 
-        [StructLayout(LayoutKind.Sequential, Pack = 8)]
+        [StructLayout(LayoutKind.Sequential, Pack = 8, Size = EntryStride)]
         public readonly struct MemDictEntry
         {
-            private readonly ulong _pad00;
-            public readonly TKey Key;
-            public readonly TValue Value;
+            public readonly TKey Key;      // offset 0x0
+            public readonly TValue Value;  // offset 0x8
+            private readonly ulong _pad;   // padding to reach 0x18 stride
         }
     }
 }

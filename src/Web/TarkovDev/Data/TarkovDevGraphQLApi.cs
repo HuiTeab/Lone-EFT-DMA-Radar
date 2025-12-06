@@ -128,6 +128,10 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
                         normalizedName 
                         name 
                     }
+                    tasks {
+                      id
+                      name
+                    }
                 }
                 """
                 }

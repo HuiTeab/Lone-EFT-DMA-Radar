@@ -59,10 +59,17 @@ namespace LoneEftDmaRadar.Tarkov
         /// Maps Data for Tarkov.
         /// </summary>
         public static FrozenDictionary<string, MapElement> MapData { get; private set; }
+
+        /// <summary>
+        ///  Tasks Data for Tarkov.
+        /// </summary>
+        public static FrozenDictionary<string, TaskElement> TaskData { get; private set; }
+
         /// <summary>
         /// XP Table for Tarkov.
         /// </summary>
         public static IReadOnlyDictionary<int, int> XPTable { get; private set; }
+
 
         #region Startup
 
@@ -127,6 +134,11 @@ namespace LoneEftDmaRadar.Tarkov
                 .ToDictionary(k => k.BsgId, v => v, StringComparer.OrdinalIgnoreCase)
                 .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
             XPTable = data.PlayerLevels?.ToDictionary(x => x.Exp, x => x.Level) ?? new Dictionary<int, int>();
+            TaskData = (data.Tasks ?? new List<TaskElement>())
+                .Where(t => !string.IsNullOrWhiteSpace(t?.Id))
+                .DistinctBy(t => t.Id, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(t => t.Id, t => t, StringComparer.OrdinalIgnoreCase)
+                .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
             var maps = data.Maps.ToDictionary(x => x.NameId, StringComparer.OrdinalIgnoreCase) ??
                 new Dictionary<string, MapElement>(StringComparer.OrdinalIgnoreCase);
             maps.TryAdd("Terminal", new MapElement() // Preliminary terminal support
@@ -249,6 +261,9 @@ namespace LoneEftDmaRadar.Tarkov
 
             [JsonPropertyName("playerLevels")]
             public List<PlayerLevelElement> PlayerLevels { get; set; }
+
+            [JsonPropertyName("tasks")]
+            public List<TaskElement> Tasks { get; set; } = new();
         }
 
 
@@ -326,6 +341,14 @@ namespace LoneEftDmaRadar.Tarkov
 
             [JsonPropertyName("position")]
             public PositionElement Position { get; set; }
+        }
+
+        public partial class TaskElement
+        {
+            [JsonPropertyName("id")]
+            public string Id { get; set; }
+            [JsonPropertyName("name")]
+            public string Name { get; set; }
         }
 
         #endregion

@@ -124,6 +124,7 @@ namespace SDK
             public const uint Id = 0x10; // string
             public const uint AccountId = 0x18; // string
             public const uint Info = 0x48; // object
+            public const uint QuestsData = 0x98; //QuestsData (type: System.Collections.Generic.List<EFT.Quests.QuestStatusData>)
         }
 
         public readonly partial struct PlayerInfo
@@ -243,6 +244,22 @@ namespace SDK
             public const uint On = 0x20;
             public const uint UnsharpRadiusBlur = 0x90;
         }
+        public readonly partial struct QuestData
+        {
+            public const uint Status = 0x1c; // EFT.Quests.EQuestStatus
+            public const uint CompletedConditions = 0x28; //System.Collections.Generic.HashSet<EFT.MongoID>
+            public const uint Id = 0x10; // string
+            public const uint Template = 0x38; // string
+        }
+        public readonly partial struct QuestStatus
+        {
+            public const uint Value = 0x10; // public Int32 value__; // 0x10
+        }
+
+        public readonly partial struct QuestTemplate
+        {
+            public const uint Conditions = 0x60; // EFT.Quests.ConditionsDict
+        }
     }
 
     public readonly partial struct Enums
@@ -339,6 +356,21 @@ namespace SDK
             Train = 11,
             Timer = 12,
             SecretTransferItem = 13,
+        }
+
+        public enum EQuestStatus
+        {
+            Locked = 0,
+            AvailableForStart = 1,
+            Started = 2,
+            AvailableForFinish = 3,
+            Success = 4,
+            Fail = 5,
+            FailRestartable = 6,
+            MarkedAsFailed = 7,
+            Expired = 8,
+            AvailableAfter = 9,
+            AutoStart = 10,
         }
     }
 }

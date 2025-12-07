@@ -80,8 +80,7 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
             public List<object> PlayerLevels { get; set; }
 
             [JsonPropertyName("tasks")]
-            public List<TaskElement> Tasks { get; set; }
-
+            public List<object> Tasks { get; set; }
         }
         public sealed class WarningMessage
         {

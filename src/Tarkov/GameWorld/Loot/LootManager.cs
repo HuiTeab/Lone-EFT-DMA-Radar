@@ -41,6 +41,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
         private readonly ulong _lgw;
         private readonly Lock _filterSync = new();
         private readonly ConcurrentDictionary<ulong, LootItem> _loot = new();
+        private readonly HashSet<string> _loggedQuestItems = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// All loot (with filter applied).
@@ -234,7 +235,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
                     var corpse = new LootCorpse(interactiveClass, pos);
                     _ = _loot.TryAdd(p.ItemBase, corpse);
                 }
-                if (isContainer)
+                else if (isContainer)
                 {
                     try
                     {

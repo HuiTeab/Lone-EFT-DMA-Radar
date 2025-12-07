@@ -309,7 +309,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
         {
             var ct = e.CancellationToken;
             ValidatePlayerTransforms(); // Check for transform anomalies
-            // Sync FilteredLoot
             Loot.Refresh(ct);
             // Refresh player equipment
             RefreshEquipment();
@@ -320,7 +319,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 QuestManager.Refresh(ct);
         }
 
-        private void RefreshEquipment()
+        private void RefreshEquipment(CancellationToken ct)
         {
             var players = _rgtPlayers
                 .OfType<ObservedPlayer>()
@@ -328,7 +327,16 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                     && x.IsActive && x.IsAlive);
             foreach (var player in players)
             {
+                ct.ThrowIfCancellationRequested();
                 player.Equipment.Refresh();
+            }
+        }
+
+        private void RefreshQuestHelper(CancellationToken ct)
+        {
+            if (App.Config.QuestHelper.Enabled)
+            {
+                QuestManager.Refresh(ct);
             }
         }
 

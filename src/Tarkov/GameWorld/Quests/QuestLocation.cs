@@ -1,10 +1,8 @@
-﻿using LoneEftDmaRadar.Tarkov.GameWorld.Player;
+﻿using Collections.Pooled;
+using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.Tarkov.Unity;
 using LoneEftDmaRadar.UI.Radar.Maps;
 using LoneEftDmaRadar.UI.Skia;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
 {
@@ -17,7 +15,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
         /// Name of this quest.
         /// </summary>
         public string Name { get; }
-        public string Type { get; }
+        public QuestObjectiveType Type { get; }
         public Vector2 MouseoverPosition { get; set; }
 
         private readonly Vector3 _position;
@@ -25,13 +23,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
 
         public QuestLocation(string questID, string target, Vector3 position)
         {
+            QuestObjectiveType foundType = QuestObjectiveType.Unknown;
             // Resolve quest name and objective type (if available).
             if (TarkovDataManager.TaskData.TryGetValue(questID, out var q))
             {
                 Name = q.Name ?? target;
 
                 // Attempt to find the objective that corresponds to 'target' and extract its Type.
-                string foundType = null;
                 try
                 {
                     if (q.Objectives is not null)
@@ -41,21 +39,21 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
                             || (o.MarkerItem?.Id is not null && string.Equals(o.MarkerItem.Id, target, StringComparison.OrdinalIgnoreCase))
                             || (o.Zones?.Any(z => string.Equals(z.Id, target, StringComparison.OrdinalIgnoreCase)) == true)
                         );
-                        foundType = obj?.Type;
+                        foundType = obj?.Type ?? QuestObjectiveType.Unknown;
                     }
                 }
                 catch
                 {
-                    // Swallow any unexpected structure errors - fall back to target string.
+                    // Swallow any unexpected structure errors
                 }
 
-                Type = !string.IsNullOrEmpty(foundType) ? foundType : target;
+                Type = foundType;
             }
             else
             {
                 // Fallback when TaskData doesn't contain the quest
                 Name = target;
-                Type = target;
+                Type = QuestObjectiveType.Unknown;
             }
 
             _position = position;
@@ -71,13 +69,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
             {
                 using var path = point.GetUpArrow();
                 canvas.DrawPath(path, SKPaints.ShapeOutline);
-                canvas.DrawPath(path, SKPaints.QuestHelperPaint);
+                canvas.DrawPath(path, SKPaints.PaintQuestZone);
             }
             else if (heightDiff < -1.45) // marker is below player
             {
                 using var path = point.GetDownArrow();
                 canvas.DrawPath(path, SKPaints.ShapeOutline);
-                canvas.DrawPath(path, SKPaints.QuestHelperPaint);
+                canvas.DrawPath(path, SKPaints.PaintQuestZone);
             }
             else // marker is level with player
             {
@@ -85,18 +83,16 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
                 canvas.DrawRect(point.X, point.Y,
                     squareSize, squareSize, SKPaints.ShapeOutline);
                 canvas.DrawRect(point.X, point.Y,
-                    squareSize, squareSize, SKPaints.QuestHelperPaint);
+                    squareSize, squareSize, SKPaints.PaintQuestZone);
             }
         }
 
         public void DrawMouseover(SKCanvas canvas, EftMapParams mapParams, LocalPlayer localPlayer)
         {
-            List<string> lines = new();
+            using var lines = new PooledList<string>();
             lines.Add(Name);
-            if (!string.IsNullOrEmpty(Type) && !string.Equals(Type, Name, StringComparison.OrdinalIgnoreCase))
-                lines.Add($"Type: {Type}");
-            Position.ToMapPos(mapParams.Map).ToZoomedPos(mapParams).DrawMouseoverText(canvas, lines.ToArray());
+            lines.Add($"Type: {Type.ToString()}");
+            Position.ToMapPos(mapParams.Map).ToZoomedPos(mapParams).DrawMouseoverText(canvas, lines.Span);
         }
-
     }
 }

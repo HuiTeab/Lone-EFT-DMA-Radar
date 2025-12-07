@@ -26,6 +26,7 @@ SOFTWARE.
  *
 */
 
+using LoneEftDmaRadar.Tarkov.GameWorld.Quests;
 using LoneEftDmaRadar.Web.TarkovDev.Data;
 using System.Collections.Frozen;
 
@@ -65,6 +66,10 @@ namespace LoneEftDmaRadar.Tarkov
         /// </summary>
         public static FrozenDictionary<string, TaskElement> TaskData { get; private set; }
 
+        /// <summary>
+        ///  Tasks Data for Tarkov.
+        /// </summary>
+        public static FrozenDictionary<string, TaskElement> TaskData { get; private set; }
         /// <summary>
         /// XP Table for Tarkov.
         /// </summary>
@@ -132,6 +137,11 @@ namespace LoneEftDmaRadar.Tarkov
             AllContainers = data.Items.Where(x => x.Tags?.Contains("Static Container") ?? false)
                 .DistinctBy(x => x.BsgId, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(k => k.BsgId, v => v, StringComparer.OrdinalIgnoreCase)
+                .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+            TaskData = (data.Tasks ?? new List<TaskElement>())
+                .Where(t => !string.IsNullOrWhiteSpace(t?.Id))
+                .DistinctBy(t => t.Id, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(t => t.Id, t => t, StringComparer.OrdinalIgnoreCase)
                 .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
             XPTable = data.PlayerLevels?.ToDictionary(x => x.Exp, x => x.Level) ?? new Dictionary<int, int>();
             TaskData = (data.Tasks ?? new List<TaskElement>())
@@ -360,7 +370,34 @@ namespace LoneEftDmaRadar.Tarkov
                 public string Id { get; set; }
 
                 [JsonPropertyName("type")]
-                public string Type { get; set; }
+#pragma warning disable IDE1006 // Naming Styles
+                public string _type { get; set; }
+#pragma warning restore IDE1006 // Naming Styles
+
+                [JsonIgnore]
+                public QuestObjectiveType Type =>
+                _type switch
+                {
+                    "visit" => QuestObjectiveType.Visit,
+                    "mark" => QuestObjectiveType.Mark,
+                    "giveItem" => QuestObjectiveType.GiveItem,
+                    "shoot" => QuestObjectiveType.Shoot,
+                    "extract" => QuestObjectiveType.Extract,
+                    "findQuestItem" => QuestObjectiveType.FindQuestItem,
+                    "giveQuestItem" => QuestObjectiveType.GiveQuestItem,
+                    "findItem" => QuestObjectiveType.FindItem,
+                    "buildWeapon" => QuestObjectiveType.BuildWeapon,
+                    "plantItem" => QuestObjectiveType.PlantItem,
+                    "plantQuestItem" => QuestObjectiveType.PlantQuestItem,
+                    "traderLevel" => QuestObjectiveType.TraderLevel,
+                    "traderStanding" => QuestObjectiveType.TraderStanding,
+                    "skill" => QuestObjectiveType.Skill,
+                    "experience" => QuestObjectiveType.Experience,
+                    "useItem" => QuestObjectiveType.UseItem,
+                    "sellItem" => QuestObjectiveType.SellItem,
+                    "taskStatus" => QuestObjectiveType.TaskStatus,
+                    _ => QuestObjectiveType.Unknown
+                };
 
                 [JsonPropertyName("description")]
                 public string Description { get; set; }

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
+﻿namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
 {
     /// <summary>
     /// One-Way Binding Only
@@ -37,15 +33,15 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
         public QuestEntry(string id)
         {
             Id = id;
-            //if (TarkovDataManager.TaskData.TryGetValue(id, out var task))
-            //{
-            //    Name = task.Name ?? id;
-            //}
-            //else
-            //{
-            //    Name = id;
-            //}
-            //_isEnabled = !App.Config.QuestHelper.BlacklistedQuests.ContainsKey(id);
+            if (TarkovDataManager.TaskData.TryGetValue(id, out var task))
+            {
+                Name = task.Name ?? id;
+            }
+            else
+            {
+                Name = id;
+            }
+            _isEnabled = !App.Config.QuestHelper.BlacklistedQuests.ContainsKey(id);
         }
 
         public override string ToString() => Name;

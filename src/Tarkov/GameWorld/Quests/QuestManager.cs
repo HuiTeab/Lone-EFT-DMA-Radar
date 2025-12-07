@@ -1,13 +1,6 @@
 ﻿using Collections.Pooled;
 using LoneEftDmaRadar.Tarkov.Unity.Collections;
-using LoneEftDmaRadar.Tarkov.Unity.Structures;
-using System;
 using System.Collections.Frozen;
-using System.Collections.Generic;
-using System.Text;
-using VmmSharpEx.Extensions;
-using static LoneEftDmaRadar.Tarkov.TarkovDataManager;
-using static VmmSharpEx.Vmm;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
 {
@@ -111,29 +104,27 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
                     try
                     {
                         //qDataEntry should be public class QuestStatusData : Object
-                        var qStatus = Memory.ReadValue<int>(qDataEntry + Offsets.QuestData.Status);
-                        if (qStatus != 2)
-                        {
+                        var qStatus = Memory.ReadValue<int>(qDataEntry + Offsets.QuestsData.Status);
+                        if (qStatus != 2) // started
                             continue;
-                        }
-                        var qId = Memory.ReadUnityString(Memory.ReadPtr(qDataEntry + Offsets.QuestData.Id));
-                        //qID should be Task ID
+                        var qId = Memory.ReadUnityString(Memory.ReadPtr(qDataEntry + Offsets.QuestsData.Id));
+                        // qID should be Task ID
                         if (!TarkovDataManager.TaskData.TryGetValue(qId, out var task))
-                        {
                             continue;
-                        }
+                        masterQuests.Add(qId);
+                        _ = _quests.GetOrAdd(
+                            qId,
+                            id => new QuestEntry(id));
+                        if (App.Config.QuestHelper.BlacklistedQuests.ContainsKey(qId))
+                            continue; // Log the quest but dont get any conditions
                         //Debug.WriteLine($"[QuestManager] Processing Quest ID: {task.Id} {task.Name}");
-                        using var completedHS = UnityHashSet<MongoID>.Create(Memory.ReadPtr(qDataEntry + Offsets.QuestData.CompletedConditions), true);
+                        using var completedHS = UnityHashSet<MongoID>.Create(Memory.ReadPtr(qDataEntry + Offsets.QuestsData.CompletedConditions), true);
                         using var completedConditions = new PooledSet<string>(StringComparer.OrdinalIgnoreCase);
                         foreach (var c in completedHS)
                         {
                             var completedCond = c.Value.ReadString();
                             completedConditions.Add(completedCond);
                         }
-                        masterQuests.Add(qId);
-                        _ = _quests.GetOrAdd(
-                            qId,
-                            id => new QuestEntry(id));
 
                         FilterConditions(task, qId, completedConditions, masterItems, masterLocations);
 
@@ -186,7 +177,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
         }
 
 
-        private void FilterConditions(TaskElement task, string questId, PooledSet<string> completedConditions, PooledSet<string> masterItems, PooledSet<string> masterLocations)
+        private void FilterConditions(TarkovDataManager.TaskElement task, string questId, PooledSet<string> completedConditions, PooledSet<string> masterItems, PooledSet<string> masterLocations)
         {
             if (task is null)
                 return;
@@ -203,19 +194,26 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
                     if (!string.IsNullOrEmpty(objective.Id) && completedConditions.Contains(objective.Id))
                         continue;
                     //skip Type: buildWeapon, giveQuestItem, extract, shoot, traderLevel, giveItem
-                    if (objective.Type.Equals("buildWeapon", StringComparison.OrdinalIgnoreCase)
-                        || objective.Type.Equals("giveQuestItem", StringComparison.OrdinalIgnoreCase)
-                        || objective.Type.Equals("extract", StringComparison.OrdinalIgnoreCase)
-                        || objective.Type.Equals("shoot", StringComparison.OrdinalIgnoreCase)
-                        || objective.Type.Equals("traderLevel", StringComparison.OrdinalIgnoreCase)
-                        || objective.Type.Equals("giveItem", StringComparison.OrdinalIgnoreCase))
+                    if (objective.Type == QuestObjectiveType.BuildWeapon
+                        || objective.Type == QuestObjectiveType.GiveQuestItem
+                        || objective.Type == QuestObjectiveType.Extract
+                        || objective.Type == QuestObjectiveType.Shoot
+                        || objective.Type == QuestObjectiveType.TraderLevel
+                        || objective.Type == QuestObjectiveType.GiveItem)
                     {
                         continue;
                     }
 
                     // Item Pickup Objectives findItem and findQuestItem
-                    if (objective.Type.Equals("findItem", StringComparison.OrdinalIgnoreCase)
-                        || objective.Type.Equals("findQuestItem", StringComparison.OrdinalIgnoreCase))
+                    if (objective.Type == QuestObjectiveType.FindQuestItem)
+                    {
+                        if (objective.QuestItem?.Id is not null)
+                        {
+                            masterItems.Add(objective.QuestItem.Id);
+                            _ = _items.GetOrAdd(objective.QuestItem.Id, 0);
+                        }
+                    }
+                    else if (objective.Type == QuestObjectiveType.FindItem)
                     {
                         if (objective.Item?.Id is not null)
                         {
@@ -224,7 +222,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
                         }
                     }
                     // Location Visit Objectives visitLocation
-                    else if (objective.Type.Equals("visit", StringComparison.OrdinalIgnoreCase) || objective.Type.Equals("mark", StringComparison.OrdinalIgnoreCase) || objective.Type.Equals("plantItem", StringComparison.OrdinalIgnoreCase))
+                    else if (objective.Type == QuestObjectiveType.Visit
+                        || objective.Type == QuestObjectiveType.Mark
+                        || objective.Type == QuestObjectiveType.PlantItem)
                     {
                         if (objective.Zones is not null && objective.Zones.Count > 0)
                         {

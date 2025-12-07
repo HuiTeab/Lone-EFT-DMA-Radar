@@ -39,7 +39,6 @@ using LoneEftDmaRadar.UI.Radar.Views;
 using LoneEftDmaRadar.UI.Skia;
 using SkiaSharp.Views.WPF;
 using System.Windows.Controls;
-using TwitchLib.Api.Helix.Models.Raids;
 
 namespace LoneEftDmaRadar.UI.Radar.ViewModels
 {
@@ -92,7 +91,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 var quests = App.Config.QuestHelper.Enabled
                     ? Memory.QuestManager?.LocationConditions?.Values?.OfType<IMouseoverEntity>() ?? Enumerable.Empty<IMouseoverEntity>()
                     : Enumerable.Empty<IMouseoverEntity>();
-
 
                 if (SearchFilterIsSet && !(MainWindow.Instance?.Radar?.Overlay?.ViewModel?.HideCorpses ?? false)) // Item Search
                     players = players.Where(x =>
@@ -255,7 +253,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                         }
                     }
 
-                    if (Exits is IReadOnlyCollection<IExitPoint> exits)
+                    if (App.Config.UI.ShowExfils && Exits is IReadOnlyCollection<IExitPoint> exits)
                     {
                         foreach (var exit in exits)
                         {
@@ -265,7 +263,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
 
                     if (App.Config.QuestHelper.Enabled)
                     {
-
                         if (Memory.QuestManager?.LocationConditions?.Values is IEnumerable<QuestLocation> questLocations)
                         {
                             foreach (var loc in questLocations)
@@ -584,6 +581,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                             ? corpse.GroupID
                             : (int?)null;
                         break;
+
                     case LootItem loot:
                         _mouseOverItem = loot;
                         MouseoverGroup = null;
@@ -594,8 +592,8 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                         MouseoverGroup = null;
                         break;
 
-                    case QuestLocation questLoc:
-                        _mouseOverItem = questLoc;
+                    case QuestLocation quest:
+                        _mouseOverItem = quest;
                         MouseoverGroup = null;
                         break;
 

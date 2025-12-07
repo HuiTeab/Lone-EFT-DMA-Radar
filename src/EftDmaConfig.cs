@@ -786,6 +786,7 @@ namespace LoneEftDmaRadar
     {
         public bool Enabled { get; set; } = false;
         public bool ThermalEnabled { get; set; } = false;
+        public bool NightVisionEnabled { get; set; } = false;
     }
 
     public sealed class QuestHelperConfig

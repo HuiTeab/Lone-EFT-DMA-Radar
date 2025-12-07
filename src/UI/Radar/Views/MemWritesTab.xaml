@@ -115,34 +115,60 @@
                     </Border>
                 </StackPanel>
             </GroupBox>
+            <GroupBox Header="? ">
+                <StackPanel Margin="10" IsEnabled="{Binding Enabled}">
+                    <CheckBox Content="Enable NightVision"
+                        IsChecked="{Binding NightVisionEnabled, Mode=TwoWay}" 
+                        FontWeight="Bold"
+                        Margin="0,5,0,10" />
+
+                    <TextBlock Text="" 
+                        TextWrapping="Wrap" 
+                        Foreground="Gray" 
+                        FontSize="11" 
+                        Margin="0,0,0,5"/>
+
+                    <Border Background="#1A4200ff" 
+                        BorderBrush="LimeGreen" 
+                        BorderThickness="1" 
+                        CornerRadius="3" 
+                        Padding="10" 
+                        Margin="0,10,0,0">
+                        <StackPanel>
+                            <TextBlock Text="?? How it works:" 
+                                FontWeight="Bold" 
+                                Foreground="LimeGreen"/>
+                            <TextBlock TextWrapping="Wrap" 
+                                Foreground="Gray"
+                                FontSize="11"
+                                Margin="0,5,0,0"><Run Text="?"/><LineBreak/></TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#1A0505ff" 
+                        BorderBrush="Orange" 
+                        BorderThickness="1" 
+                        CornerRadius="3" 
+                        Padding="10" 
+                        Margin="0,10,0,0">
+                        <StackPanel>
+                            <TextBlock Text="?? Detection Risk: ?" 
+                                FontWeight="Bold" 
+                                Foreground="Red"/>
+                            <TextBlock Text="" 
+                                TextWrapping="Wrap" 
+                                Foreground="Gray"
+                                FontSize="11"
+                                Margin="0,5,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </GroupBox>
             <!-- No Recoil -->
 
             <!-- Infinite Stamina -->
 
             <!-- Help/Info -->
-            <GroupBox Header="?? Important Information" Margin="0,0,0,10">
-                <TextBlock TextWrapping="Wrap" 
-                           Margin="10"
-                           LineHeight="20">
-                    <Run Text="Memory Write Features:" FontWeight="Bold"/><LineBreak/>
-                    <LineBreak/>
-                    ? These features write directly to game memory<LineBreak/>
-                    ? They are MUCH more detectable than read-only features<LineBreak/>
-                    ? Use them sparingly and at your own risk<LineBreak/>
-                    ? Consider them "burn" features - use only if willing to risk account<LineBreak/>
-                    <LineBreak/>
-                    <Run Text="Recommendations:" FontWeight="Bold"/><LineBreak/>
-                    <LineBreak/>
-                    ? Use on throwaway accounts only<LineBreak/>
-                    ? Don't use during high-traffic times<LineBreak/>
-                    ? Avoid obvious patterns (e.g. zero recoil)<LineBreak/>
-                    ? Keep values realistic (60-80% reduction max)<LineBreak/>
-                    <LineBreak/>
-                    <Run Text="If detected:" FontWeight="Bold" Foreground="Red"/><LineBreak/>
-                    <Run Text="You will likely receive an account ban. There is no appeal process." 
-                         Foreground="Red"/>
-                </TextBlock>
-            </GroupBox>
 
         </StackPanel>
     </ScrollViewer>

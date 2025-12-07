@@ -5,6 +5,7 @@
 
 using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.DMA.ScatterAPI;
+using LoneEftDmaRadar.Tarkov.Features.Memwrites;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using System;
 using System.Collections.Generic;
@@ -25,6 +26,7 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
         public MemWritesManager()
         {
             _features.Add((lp, w) => ThermalVision.Instance.ApplyIfReady(lp, w));
+            _features.Add((lp, w) => NightVision.Instance.ApplyIfReady(lp, w));
         }
 
         /// <summary>
@@ -72,11 +74,13 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
         public void OnRaidStart()
         {
             ThermalVision.Instance.OnRaidStart();
+            NightVision.Instance.OnRaidStart();
         }
 
         public void OnRaidStopped()
         {
             ThermalVision.Instance.OnRaidStopped();
+            NightVision.Instance.OnRaidStopped();
         }
     }
 }

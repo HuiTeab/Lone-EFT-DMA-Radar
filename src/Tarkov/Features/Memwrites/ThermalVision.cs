@@ -97,6 +97,23 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
             return thermal;
         }
 
+        public ulong GetNightVisionComponent()
+        {
+            var fpsCamera = CameraManager.Current?.FPSCamera ?? 0;
+            if (!fpsCamera.IsValidVA())
+            {
+                Debug.WriteLine("[ThermalVision] FPS Camera not found");
+                return 0;
+            }
+            var nightVision = UnityComponent.GetComponentFromBehaviour(fpsCamera, "NightVision");
+            if (!nightVision.IsValidVA())
+            {
+                Debug.WriteLine("[ThermalVision] NightVision component not found on FPS camera GO");
+                return 0;
+            }
+            return nightVision;
+        }
+
         public override void OnRaidStart()
         {
             _currentState = false;

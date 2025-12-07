@@ -70,6 +70,19 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
         }
 
+        public bool NightVisionEnabled
+        {
+            get => App.Config.MemWrites.NightVisionEnabled;
+            set
+            {
+                if (App.Config.MemWrites.NightVisionEnabled != value)
+                {
+                    App.Config.MemWrites.NightVisionEnabled = value;
+                    OnPropertyChanged(nameof(NightVisionEnabled));
+                }
+            }
+        }
+
     }
 
 }

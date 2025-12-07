@@ -181,6 +181,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                         { "E7", "Expo Checkpoint" },
                         { "Exit_E10_coop", "Pinewood Basement (Co-Op)" },
                         { "E6", "Sewer River" },
+                        { "E4", "Damaged House" },
+                        { "E3", "Crash Site" },
+                        { "E5", "Collapsed Crane" },
                         //The Lab
 
                     };

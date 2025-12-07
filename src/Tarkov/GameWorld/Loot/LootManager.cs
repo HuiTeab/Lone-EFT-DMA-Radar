@@ -266,9 +266,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
                     var id = mongoId.ReadString();
                     if (isQuestItem)
                     {
-                        var shortNamePtr = Memory.ReadPtr(itemTemplate + Offsets.ItemTemplate.ShortName);
-                        var shortName = Memory.ReadUnityString(shortNamePtr, 128);
-                        _ = _loot.TryAdd(p.ItemBase, new LootItem(id, $"Q_{shortName}", pos) { IsQuestItem = true });
+                        bool neededByQuest = Memory.QuestManager?.ItemConditions?.ContainsKey(id) ?? false;
+                        if (neededByQuest)
+                        {
+                            var shortNamePtr = Memory.ReadPtr(itemTemplate + Offsets.ItemTemplate.ShortName);
+                            var shortName = Memory.ReadUnityString(shortNamePtr, 128);
+                            _ = _loot.TryAdd(p.ItemBase, new LootItem(id, $"Q_{shortName}", pos) { IsQuestItem = true });
+                        }
                     }
                     else
                     {

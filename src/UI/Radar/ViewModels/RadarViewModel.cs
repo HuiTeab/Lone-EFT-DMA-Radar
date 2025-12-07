@@ -265,6 +265,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
 
                     if (App.Config.QuestHelper.Enabled)
                     {
+
                         if (Memory.QuestManager?.LocationConditions?.Values is IEnumerable<QuestLocation> questLocations)
                         {
                             foreach (var loc in questLocations)

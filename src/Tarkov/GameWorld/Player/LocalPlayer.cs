@@ -145,6 +145,19 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             }
         }
 
+        public bool CheckIfADS()
+        {
+            try
+            {
+                return Memory.ReadValue<bool>(PWA + Offsets.ProceduralWeaponAnimation._isAiming, false);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"CheckIfADS() ERROR: {ex}");
+                return false;
+            }
+        }
+
         #region Wishlist
 
         /// <summary>

@@ -67,10 +67,6 @@ namespace LoneEftDmaRadar.Tarkov
         public static FrozenDictionary<string, TaskElement> TaskData { get; private set; }
 
         /// <summary>
-        ///  Tasks Data for Tarkov.
-        /// </summary>
-        public static FrozenDictionary<string, TaskElement> TaskData { get; private set; }
-        /// <summary>
         /// XP Table for Tarkov.
         /// </summary>
         public static IReadOnlyDictionary<int, int> XPTable { get; private set; }

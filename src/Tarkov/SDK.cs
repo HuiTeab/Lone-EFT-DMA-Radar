@@ -125,6 +125,17 @@ namespace SDK
             public const uint AccountId = 0x18; // string
             public const uint Info = 0x48; // object
             public const uint QuestsData = 0x98; //QuestsData (type: System.Collections.Generic.List<EFT.Quests.QuestStatusData>)
+            public const uint WishlistManager = 0x108; // object
+        }
+        public readonly partial struct WishlistManager
+        {
+            public const uint _wishlistItems = 0x30; // object
+        }
+        public readonly partial struct QuestsData
+        {
+            public const uint Id = 0x10; // string
+            public const uint Status = 0x1C; // object
+            public const uint CompletedConditions = 0x28; // object
         }
 
         public readonly partial struct PlayerInfo

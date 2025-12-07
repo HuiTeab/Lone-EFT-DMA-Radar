@@ -139,12 +139,6 @@ namespace LoneEftDmaRadar
         [JsonInclude]
         public QuestHelperConfig QuestHelper { get; private set; } = new();
 
-        /// <summary>
-        /// Quest Helper Cfg
-        /// </summary>
-        [JsonPropertyName("questHelper")]
-        [JsonInclude]
-        public QuestHelperConfig QuestHelper { get; private set; } = new();
 
         /// <summary>
         /// Player Watchlist Collection.

@@ -311,7 +311,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
             ValidatePlayerTransforms(); // Check for transform anomalies
             Loot.Refresh(ct);
             // Refresh player equipment
-            RefreshEquipment();
+            RefreshEquipment(ct);
 
             _exfilManager.Refresh();
 

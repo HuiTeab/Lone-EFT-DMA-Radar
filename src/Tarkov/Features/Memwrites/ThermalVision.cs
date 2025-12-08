@@ -38,11 +38,12 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
                     return;
 
                 // Old behavior: on only if enabled and not ADS
-                bool targetState = Enabled && !localPlayer.CheckIfADS();
+                bool targetState = Enabled; //&& !localPlayer.CheckIfADS();
 
                 // If no change, do nothing
                 if (targetState == _currentState)
                     return;
+
 
                 var thermalComponent = GetThermalVisionComponent();
                 if (!thermalComponent.IsValidVA())

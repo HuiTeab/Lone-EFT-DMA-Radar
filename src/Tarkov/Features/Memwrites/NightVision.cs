@@ -13,7 +13,7 @@ namespace LoneEftDmaRadar.Tarkov.Features.Memwrites
     public sealed class NightVision : MemWriteFeature<NightVision>
     {
         private bool _currentState;
-        private ulong _cachedThermalVisionComponent;
+        private ulong _cachedNightVisionComponent;
 
         // ? tell the base we must run once after disable
         protected override bool NeedsDisableCleanup => true;
@@ -61,7 +61,7 @@ namespace LoneEftDmaRadar.Tarkov.Features.Memwrites
             catch (Exception ex)
             {
                 Debug.WriteLine($"[NightVision] ERROR: {ex}");
-                _cachedThermalVisionComponent = 0;
+                _cachedNightVisionComponent = 0;
             }
         }
 
@@ -85,13 +85,13 @@ namespace LoneEftDmaRadar.Tarkov.Features.Memwrites
         public override void OnRaidStart()
         {
             _currentState = false;
-            _cachedThermalVisionComponent = 0;
+            _cachedNightVisionComponent = 0;
         }
 
         public override void OnRaidStopped()
         {
             _currentState = false;
-            _cachedThermalVisionComponent = 0;
+            _cachedNightVisionComponent = 0;
         }
     }
 }

@@ -27,9 +27,9 @@ SOFTWARE.
 */
 
 using Collections.Pooled;
-using LoneEftDmaRadar.Tarkov;
 using LoneEftDmaRadar.Tarkov.GameWorld.Exits;
 using LoneEftDmaRadar.Tarkov.GameWorld.Explosives;
+using LoneEftDmaRadar.Tarkov.GameWorld.Hazards;
 using LoneEftDmaRadar.Tarkov.GameWorld.Loot;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.Tarkov.GameWorld.Quests;
@@ -66,42 +66,25 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         private static IEnumerable<StaticLootContainer> Containers => Memory.Loot?.StaticContainers;
         private static IReadOnlyCollection<AbstractPlayer> AllPlayers => Memory.Players;
         private static IReadOnlyCollection<IExplosiveItem> Explosives => Memory.Explosives;
+
+        /// <summary>
+        /// Contains all 'Hazards' in Local Game World, and their type/position(s).
+        /// </summary>
+        private static IReadOnlyCollection<IWorldHazard> Hazards => Memory.Game?.Hazards;
+
+        /// <summary>
+        /// Contains all 'Exits' in Local Game World, and their status/position(s).
+        /// </summary>
         private static IReadOnlyCollection<IExitPoint> Exits => Memory.Exits;
+        /// <summary>
+        /// Contains the Quest Manager.
+        /// </summary>
+        private static QuestManager Quests => Memory.QuestManager;
 
         private static bool SearchFilterIsSet =>
             !string.IsNullOrEmpty(LootFilter.SearchString);
 
         public static bool LootCorpsesVisible => App.Config.Loot.Enabled && !App.Config.Loot.HideCorpses && !SearchFilterIsSet;
-
-        private static IEnumerable<IMouseoverEntity> MouseOverItems
-        {
-            get
-            {
-
-                var players = AllPlayers
-                    .Where(x => x is not Tarkov.GameWorld.Player.LocalPlayer
-                        && !x.HasExfild && (!LootCorpsesVisible || x.IsAlive)) ??
-                        Enumerable.Empty<AbstractPlayer>();
-
-                var loot = App.Config.Loot.Enabled ?
-                    FilteredLoot ?? Enumerable.Empty<IMouseoverEntity>() : Enumerable.Empty<IMouseoverEntity>();
-                var containers = App.Config.Loot.Enabled && App.Config.Containers.Enabled ?
-                    Containers ?? Enumerable.Empty<IMouseoverEntity>() : Enumerable.Empty<IMouseoverEntity>();
-                var exits = Exits ?? Enumerable.Empty<IMouseoverEntity>();
-                var quests = App.Config.QuestHelper.Enabled
-                    ? Memory.QuestManager?.LocationConditions?.Values?.OfType<IMouseoverEntity>() ?? Enumerable.Empty<IMouseoverEntity>()
-                    : Enumerable.Empty<IMouseoverEntity>();
-
-                if (SearchFilterIsSet && !(MainWindow.Instance?.Radar?.Overlay?.ViewModel?.HideCorpses ?? false)) // Item Search
-                    players = players.Where(x =>
-                        x.LootObject is null || !loot.Contains(x.LootObject)); // Don't show both corpse objects
-
-                var result = loot.Concat(containers).Concat(players).Concat(exits).Concat(quests);
-                return result.Any() ? result : null;
-            }
-        }
-
-        public static int? MouseoverGroup { get; private set; }
 
         #endregion
 
@@ -111,7 +94,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         private readonly PeriodicTimer _periodicTimer = new PeriodicTimer(period: TimeSpan.FromSeconds(1));
         private int _fps = 0;
         private bool _mouseDown;
-        private IMouseoverEntity _mouseOverItem;
         private Vector2 _lastMousePosition;
         private Vector2 _mapPanPosition;
 
@@ -236,12 +218,11 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                     }
 
                     if (App.Config.UI.ShowHazards &&
-                        TarkovDataManager.MapData.TryGetValue(mapID, out var mapData) && mapData.Hazards is not null)
+                        Hazards is IReadOnlyCollection<IWorldHazard> hazards) // Draw Hazards
                     {
-                        foreach (var hazard in mapData.Hazards)
+                        foreach (var hazard in hazards)
                         {
-                            var mineZoomedPos = hazard.Position.AsVector3().ToMapPos(map.Config).ToZoomedPos(mapParams);
-                            mineZoomedPos.DrawHazardMarker(canvas);
+                            hazard.Draw(canvas, mapParams, localPlayer);
                         }
                     }
 
@@ -263,7 +244,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
 
                     if (App.Config.QuestHelper.Enabled)
                     {
-                        if (Memory.QuestManager?.LocationConditions?.Values is IEnumerable<QuestLocation> questLocations)
+                        if (Quests?.LocationConditions?.Values is IEnumerable<QuestLocation> questLocations)
                         {
                             foreach (var loc in questLocations)
                             {
@@ -518,8 +499,12 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
         }
 
+        private readonly RateLimiter _mouseMoveRL = new(TimeSpan.FromSeconds(1d / 60));
         private void Radar_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
+            if (!_mouseMoveRL.TryEnter()) // This may fire very very rapidly, slow it down a bit to reduce ui impact
+                return;
+            // get mouse pos relative to the Radar control
             var element = sender as IInputElement;
             var pt = e.GetPosition(element);
             var mouseX = (float)pt.X;
@@ -531,82 +516,141 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 var deltaX = -(mouseX - _lastMousePosition.X);
                 var deltaY = -(mouseY - _lastMousePosition.Y);
 
-                _mapPanPosition.X += (float)deltaX;
-                _mapPanPosition.Y += (float)deltaY;
+                _mapPanPosition.X += deltaX;
+                _mapPanPosition.Y += deltaY;
                 _lastMousePosition = mouse;
             }
             else
             {
-                if (!InRaid)
+                ProcessMouseoverData(mouse);
+            }
+        }
+
+        #endregion
+
+        #region Mouseovers
+
+        private IMouseoverEntity _mouseOverItem;
+        /// <summary>
+        /// Currently 'Moused Over' Group.
+        /// </summary>
+        public static int? MouseoverGroup { get; private set; }
+
+        private void ProcessMouseoverData(Vector2 mousePos)
+        {
+            if (!InRaid)
+            {
+                ClearRefs();
+                return;
+            }
+
+            // Get all eligible mouseover items
+            var items = GetMouseoverItems();
+            if (items?.Any() != true)
+            {
+                ClearRefs();
+                return;
+            }
+
+            // Find the object closest to the mouse cursor
+            IMouseoverEntity closest = null;
+            float bestDistSq = float.MaxValue;
+            foreach (var it in items)
+            {
+                var d = Vector2.DistanceSquared(it.MouseoverPosition, mousePos); // More efficient
+                if (d < bestDistSq)
                 {
-                    ClearRefs();
-                    return;
+                    bestDistSq = d;
+                    closest = it;
                 }
+            }
 
-                var items = MouseOverItems;
-                if (items?.Any() != true)
-                {
-                    ClearRefs();
-                    return;
-                }
+            const float hoverThreshold = 144f; // 12 squared
+            if (closest is null || bestDistSq >= hoverThreshold)
+            {
+                ClearRefs();
+                return;
+            }
 
-                var closest = items.Aggregate(
-                    (x1, x2) => Vector2.Distance(x1.MouseoverPosition, mouse)
-                             < Vector2.Distance(x2.MouseoverPosition, mouse)
-                        ? x1 : x2);
+            // Update mouseover fields
+            switch (closest)
+            {
+                case AbstractPlayer player:
+                    _mouseOverItem = player;
+                    MouseoverGroup = (player.IsHumanHostile && player.GroupID != -1)
+                        ? player.GroupID
+                        : null;
+                    if (LootCorpsesVisible && player.LootObject is LootCorpse playerCorpse) // Fix overlapping objects
+                    {
+                        _mouseOverItem = playerCorpse;
+                    }
+                    break;
 
-                if (Vector2.Distance(closest.MouseoverPosition, mouse) >= 12)
-                {
-                    ClearRefs();
-                    return;
-                }
+                case LootCorpse corpseObj:
+                    _mouseOverItem = corpseObj;
+                    var corpse = corpseObj.Player;
+                    MouseoverGroup = (corpse?.IsHumanHostile == true && corpse.GroupID != -1)
+                        ? corpse.GroupID
+                        : null;
+                    break;
 
-                switch (closest)
-                {
-                    case AbstractPlayer player:
-                        _mouseOverItem = player;
-                        MouseoverGroup = (player.IsHumanHostile && player.GroupID != -1)
-                            ? player.GroupID
-                            : (int?)null;
-                        if (LootCorpsesVisible && player.LootObject is LootCorpse playerCorpse)
-                        {
-                            _mouseOverItem = playerCorpse;
-                        }
-                        break;
-
-                    case LootCorpse corpseObj:
-                        _mouseOverItem = corpseObj;
-                        var corpse = corpseObj.Player;
-                        MouseoverGroup = (corpse?.IsHumanHostile == true && corpse.GroupID != -1)
-                            ? corpse.GroupID
-                            : (int?)null;
-                        break;
-
-                    case LootItem loot:
-                        _mouseOverItem = loot;
-                        MouseoverGroup = null;
-                        break;
-
-                    case IExitPoint exit:
-                        _mouseOverItem = closest;
-                        MouseoverGroup = null;
-                        break;
-
-                    case QuestLocation quest:
-                        _mouseOverItem = quest;
-                        MouseoverGroup = null;
-                        break;
-
-                    default:
-                        ClearRefs();
-                        break;
-                }
-
-                void ClearRefs()
-                {
-                    _mouseOverItem = null;
+                case LootItem loot:
+                    _mouseOverItem = loot;
                     MouseoverGroup = null;
-                }
+                    break;
+
+                case IExitPoint exit:
+                    _mouseOverItem = closest;
+                    MouseoverGroup = null;
+                    break;
+
+                case QuestLocation quest:
+                    _mouseOverItem = quest;
+                    MouseoverGroup = null;
+                    break;
+
+                case IWorldHazard hazard:
+                    _mouseOverItem = hazard;
+                    MouseoverGroup = null;
+                    break;
+
+                default:
+                    ClearRefs();
+                    break;
+            }
+
+            void ClearRefs()
+            {
+                _mouseOverItem = null;
+                MouseoverGroup = null;
+            }
+
+            static IEnumerable<IMouseoverEntity> GetMouseoverItems()
+            {
+                var players = AllPlayers
+                    .Where(x => x is not Tarkov.GameWorld.Player.LocalPlayer
+                        && !x.HasExfild && (!LootCorpsesVisible || x.IsAlive)) ??
+                        Enumerable.Empty<AbstractPlayer>();
+
+                var loot = App.Config.Loot.Enabled ?
+                    FilteredLoot ?? Enumerable.Empty<IMouseoverEntity>() : Enumerable.Empty<IMouseoverEntity>();
+                var containers = App.Config.Loot.Enabled && App.Config.Containers.Enabled ?
+                    Containers ?? Enumerable.Empty<IMouseoverEntity>() : Enumerable.Empty<IMouseoverEntity>();
+                var exits = App.Config.UI.ShowExfils ?
+                    Exits ?? Enumerable.Empty<IMouseoverEntity>() : Enumerable.Empty<IMouseoverEntity>();
+                var quests = App.Config.QuestHelper.Enabled ?
+                    Quests?.LocationConditions?.Values?.OfType<IMouseoverEntity>() ?? Enumerable.Empty<IMouseoverEntity>()
+                    : Enumerable.Empty<IMouseoverEntity>();
+                var hazards = App.Config.UI.ShowHazards ?
+                    Hazards ?? Enumerable.Empty<IMouseoverEntity>()
+                    : Enumerable.Empty<IMouseoverEntity>();
+
+                if (SearchFilterIsSet && !(MainWindow.Instance?.Radar?.Overlay?.ViewModel?.HideCorpses ?? false)) // Item Search
+                    players = players.Where(x =>
+                        x.LootObject is null || !loot.Contains(x.LootObject)); // Don't show both corpse objects
+
+                var result = loot.Concat(containers).Concat(players).Concat(exits).Concat(quests).Concat(hazards);
+                return result.Any() ? result : null;
             }
         }
 

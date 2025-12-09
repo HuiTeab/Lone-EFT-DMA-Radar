@@ -165,7 +165,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         /// </summary>
         public static IReadOnlyDictionary<string, byte> WishlistItems => _wishlistItems;
         private static readonly ConcurrentDictionary<string, byte> _wishlistItems = new(StringComparer.OrdinalIgnoreCase);
-        private static DateTimeOffset _wishlistLast = DateTimeOffset.MinValue;
+        private static readonly RateLimiter _wishlistRL = new(TimeSpan.FromSeconds(10));
 
         /// <summary>
         /// Set the Player's WishList.
@@ -174,8 +174,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         {
             try
             {
-                var now = DateTimeOffset.UtcNow;
-                if ((now - _wishlistLast).TotalSeconds < 10d)
+                if (!_wishlistRL.TryEnter())
                     return;
                 var wishlistManager = Memory.ReadPtr(Profile + Offsets.Profile.WishlistManager);
                 var itemsPtr = Memory.ReadPtr(wishlistManager + Offsets.WishlistManager._wishlistItems);
@@ -200,7 +199,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 {
                     _wishlistItems.TryAdd(newItem, 0);
                 }
-                _wishlistLast = now;
             }
             catch (OperationCanceledException) { throw; }
             catch (Exception ex)

@@ -61,11 +61,6 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
 {
     internal static class TarkovDevDataJob
     {
-        private static readonly JsonSerializerOptions _jsonOptions = new()
-        {
-            PropertyNameCaseInsensitive = true
-        };
-
         /// <summary>
         /// Retrieves updated Tarkov data from the Tarkov Dev GraphQL API and formats it into a JSON string.
         /// </summary>
@@ -73,7 +68,7 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
         public static async Task<string> GetUpdatedDataAsync()
         {
             var json = await TarkovDevGraphQLApi.GetTarkovDataAsync();
-            var data = JsonSerializer.Deserialize<TarkovDevDataQuery>(json, _jsonOptions) ??
+            var data = JsonSerializer.Deserialize<TarkovDevDataQuery>(json, App.JsonOptions) ??
                 throw new InvalidOperationException("Failed to deserialize Tarkov data.");
             var result = new OutgoingTarkovMarketData
             {
@@ -82,7 +77,7 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
                 PlayerLevels = data.Data.PlayerLevels,
                 Tasks = data.Data.Tasks
             };
-            return JsonSerializer.Serialize(result);
+            return JsonSerializer.Serialize(result); // No options is intentional here to keep it minified
         }
 
         private static List<OutgoingItem> ParseMarketData(TarkovDevDataQuery data)

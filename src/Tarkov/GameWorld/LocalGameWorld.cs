@@ -28,6 +28,7 @@ SOFTWARE.
 
 using LoneEftDmaRadar.Misc;
 using LoneEftDmaRadar.Misc.Workers;
+using LoneEftDmaRadar.Tarkov.Features.MemWrites;
 using LoneEftDmaRadar.Tarkov.GameWorld.Camera;
 using LoneEftDmaRadar.Tarkov.GameWorld.Exits;
 using LoneEftDmaRadar.Tarkov.GameWorld.Explosives;
@@ -57,10 +58,12 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
 
         private readonly RegisteredPlayers _rgtPlayers;
         private readonly ExplosivesManager _explosivesManager;
+        private readonly ExitManager _exfilManager;
         private readonly WorkerThread _t1;
         private readonly WorkerThread _t2;
         private readonly WorkerThread _t3;
         private readonly WorkerThread _t4;
+        private readonly WorkerThread _t5;
 
 
         /// <summary>
@@ -74,9 +77,12 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
         public LocalPlayer LocalPlayer => _rgtPlayers?.LocalPlayer;
         public LootManager Loot { get; }
         public QuestManager QuestManager { get; }
-        public IReadOnlyList<IExitPoint> Exits { get; }
+        //public IReadOnlyList<IExitPoint> Exits { get; }
         public IReadOnlyList<IWorldHazard> Hazards { get; }
         public CameraManager CameraManager { get; private set; }
+        public IReadOnlyCollection<IExitPoint> Exits => _exfilManager;
+
+        private readonly MemWritesManager _memWritesManager;
 
         private LocalGameWorld() { }
 
@@ -118,6 +124,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 QuestManager = new(_rgtPlayers.LocalPlayer.Profile);
                 Loot = new(localGameWorld);
                 _explosivesManager = new(localGameWorld);
+                _exfilManager = new(localGameWorld, mapID, _rgtPlayers.LocalPlayer);
                 Hazards = GetHazards(MapID);
 
                 _t4 = new WorkerThread()
@@ -127,7 +134,19 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                     SleepDuration = TimeSpan.FromMilliseconds(20)
                 };
                 _t4.PerformWork += (s, e) => FastWorker(e.CancellationToken);
-                //Exits = GetExits(MapID, _rgtPlayers.LocalPlayer.IsPmc);
+
+
+                _memWritesManager = new MemWritesManager();
+                _memWritesManager.OnRaidStart();
+
+                _t5 = new WorkerThread()
+                {
+                    Name = "MemWrites Worker",
+                    ThreadPriority = ThreadPriority.Normal,
+                    SleepDuration = TimeSpan.FromMilliseconds(10),
+                    SleepMode = WorkerThreadSleepMode.DynamicSleep
+                };
+                _t5.PerformWork += MemWritesWorker_PerformWork;
             }
             catch
             {
@@ -178,6 +197,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
             _t2.Start();
             _t3.Start();
             _t4.Start();
+            _t5.Start();
 
         }
 
@@ -349,6 +369,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 Memory.LocalPlayer?.RefreshWishlist(ct);
             RefreshEquipment(ct);
             RefreshQuestHelper(ct);
+            _exfilManager.Refresh();
         }
 
         private void RefreshEquipment(CancellationToken ct)
@@ -455,6 +476,35 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 //LoneLogging.WriteLine($"ERROR Refreshing Cameras! {ex}");
             }
         }
+        #endregion
+
+        #region MemWrites Thread T5
+
+        private void MemWritesWorker_PerformWork(object sender, WorkerThreadArgs e)
+        {
+            try
+            {
+                if (!App.Config.MemWrites.Enabled)
+                {
+                    Thread.Sleep(100);
+                    return;
+                }
+
+                var localPlayer = LocalPlayer;
+                if (localPlayer == null)
+                {
+                    Thread.Sleep(50);
+                    return;
+                }
+
+                _memWritesManager.Apply(localPlayer);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MemWritesWorker] Error: {ex}");
+            }
+        }
+
         #endregion
 
 

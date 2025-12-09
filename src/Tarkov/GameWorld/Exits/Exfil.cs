@@ -123,6 +123,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                 var hardcodedMatches = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                     {
                         //Factory
+                        { "Gate m", "Med Tent Gate" },
+                        { "Gate_o", "Gate 0" },
                         //Customs
                         { "customs_sniper_exit", "Railroad Passage (Flare)" },
                         { "Factory Gate", "Friendship Bridge (Co-Op)" },

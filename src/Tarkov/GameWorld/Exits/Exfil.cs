@@ -60,7 +60,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                 {
                     matchedAny = true;
                     Name = ex.Name;
-                    _position = ex.Position.AsVector3();
+                    _position = ex.Position;
                 }
             }
 
@@ -95,7 +95,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                     {
                         matchedAny = true;
                         Name = ex.Name;
-                        _position = ex.Position.AsVector3();
+                        _position = ex.Position;
                     }
                 }
                 else
@@ -111,7 +111,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                         {
                             matchedAny = true;
                             Name = ex.Name;
-                            _position = ex.Position.AsVector3();
+                            _position = ex.Position;
                         }
                     }
                 }
@@ -194,7 +194,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                     {
                         matchedAny = true;
                         Name = hardcodedExtract.Name;
-                        _position = hardcodedExtract.Position.AsVector3();
+                        _position = hardcodedExtract.Position;
                     }
                 }
             }

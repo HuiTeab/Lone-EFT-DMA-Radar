@@ -48,7 +48,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
     public sealed class ExitManager : IReadOnlyCollection<IExitPoint>
     {
         private IReadOnlyList<IExitPoint> _exits;
-        private readonly object _sync = new();
 
         private readonly ulong _localGameWorld;
         private readonly string _mapId;
@@ -66,11 +65,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
             _mapId = mapId;
             _localPlayer = localPlayer;
         }
-
-        /// <summary>
-        /// Public snapshot of current exits. Never returns null.
-        /// </summary>
-        public IReadOnlyList<IExitPoint> Exits => _exits ?? Array.Empty<IExitPoint>();
 
         private void Init()
         {
@@ -91,130 +85,114 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
             catch (Exception ex)
             {
                 Debug.WriteLine($"[ExitManager] Init Error: {ex}");
-                // preserve empty list in case of error to avoid null consumers
-                lock (_sync)
-                {
-                    _exits = list;
-                }
+                _exits = list;
                 return;
             }
 
-            // Populate exfils from the game memory
-            try
-            {
-                using var exfilArray = UnityArray<ulong>.Create(exfilArrayAddr, false);
-                foreach (var exfilAddr in exfilArray)
-                {
-                    var namePtr = Memory.ReadPtrChain(exfilAddr, false, new[] { Offsets.ExfiltrationPoint.Settings, Offsets.ExitTriggerSettings.Name });
-                    var exfilName = Memory.ReadUnityString(namePtr)?.Trim();
 
-                    if (_isPMC)
+
+            using var exfilArray = UnityArray<ulong>.Create(exfilArrayAddr, false);
+            foreach (var exfilAddr in exfilArray)
+            {
+                var namePtr = Memory.ReadPtrChain(exfilAddr, false, new[] { Offsets.ExfiltrationPoint.Settings, Offsets.ExitTriggerSettings.Name });
+                var exfilName = Memory.ReadUnityString(namePtr)?.Trim();
+                if (_isPMC)
+                {
+                    ulong eligibleEntryPointsArray = Memory.ReadPtr(exfilAddr + Offsets.ExfiltrationPoint.EligibleEntryPoints, false);
+                    using var eligibleEntryPoints = UnityArray<ulong>.Create(eligibleEntryPointsArray, false);
+                    foreach (var eligibleEntryPointAddr in eligibleEntryPoints)
                     {
-                        ulong eligibleEntryPointsArray = Memory.ReadPtr(exfilAddr + Offsets.ExfiltrationPoint.EligibleEntryPoints, false);
-                        using var eligibleEntryPoints = UnityArray<ulong>.Create(eligibleEntryPointsArray, false);
-                        foreach (var eligibleEntryPointAddr in eligibleEntryPoints)
+                        string entryPointIDStr = Memory.ReadUnityString(eligibleEntryPointAddr);
+                        if (!string.IsNullOrEmpty(entryPointIDStr) && entryPointIDStr.Equals(entryPointName, StringComparison.OrdinalIgnoreCase))
                         {
-                            string entryPointIDStr = Memory.ReadUnityString(eligibleEntryPointAddr);
-                            if (!string.IsNullOrEmpty(entryPointIDStr) && entryPointIDStr.Equals(entryPointName, StringComparison.OrdinalIgnoreCase))
-                            {
-                                list.Add(new Exfil(exfilAddr, exfilName, _mapId, _isPMC));
-                                break; // matched entry point — no need to check other entry points for this exfil
-                            }
-                        }
-                    }
-                    else
-                    {
-                        var eligibleIdsAddr = Memory.ReadPtr(exfilAddr + Offsets.ExfiltrationPoint.EligibleIds, false);
-                        using var eligibleIdsList = UnityList<ulong>.Create(eligibleIdsAddr, false);
-                        if (eligibleIdsList.Count > 0)
-                        {
-                            list.Add(new Exfil(exfilAddr, exfilName, _mapId, _isPMC));
+                            //try
+                            //{
+                            //    //[A0] Requirements : EFT.Interactive.ExfiltrationRequirement[]
+                            //    var requirementsAddr = Memory.ReadPtr(exfilAddr + 0xA0, false);
+                            //    var requirementsArray = UnityArray<ulong>.Create(requirementsAddr, false);
+                            //    if (requirementsArray.Count > 0)
+                            //    {
+                            //        Debug.WriteLine($"[ExitManager] Exfil {exfilName} Requirements Count: {requirementsArray.Count}");
+                            //        foreach (var requirementAddr in requirementsArray)
+                            //        {
+                            //            //[10] Requirement : EFT.Interactive.ERequirementState + 10 : value__ (type: System.Int32)Enum
+                            //            try
+                            //            {
+                            //                //var objName = ObjectClass.ReadName(requirementAddr);
+                            //                //Debug.WriteLine($"[ExitManager] Exfil {exfilName} Requirement Obj Name: {objName}");
+                            //                //WorldEventRequirement, TransferItemRequirement, ScavCooperationRequirement...
+                            //                var requirementState = Memory.ReadValue<int>(requirementAddr + 0x10);
+                            //            }
+                            //            catch (Exception ex)
+                            //            {
+
+                            //            }
+                            //        }
+                            //    }
+                            //}
+                            //catch (Exception ex)
+                            //{
+                            //    Debug.WriteLine($"[ExitManager] Exfil Eligible Entry Point Error: {ex}");
+                            //}
+                            var exfil = new Exfil(exfilAddr, exfilName, _mapId, _isPMC);
+                            list.Add(exfil);
                         }
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[ExitManager] Exfil enumeration Error: {ex}");
-                // fall through and still try to include map-defined transit points
-            }
+                else
+                {
+                    var eligibleIdsAddr = Memory.ReadPtr(exfilAddr + Offsets.ExfiltrationPoint.EligibleIds, false);
+                    using var eligibleIdsList = UnityList<ulong>.Create(eligibleIdsAddr, false);
+                    if (eligibleIdsList.Count > 0)
+                    {
+                        var exfil = new Exfil(exfilAddr, exfilName, _mapId, _isPMC);
+                        list.Add(exfil);
+                    }
 
-            // Add known transit points (and keep room for future inclusion of map extracts)
+                }
+
+            }
             if (TarkovDataManager.MapData.TryGetValue(_mapId, out var map))
             {
+                var filteredExfils = _isPMC ?
+                    map.Extracts.Where(x => x.IsShared || x.IsPmc) :
+                    map.Extracts.Where(x => !x.IsPmc);
                 foreach (var transit in map.Transits)
                 {
                     list.Add(new TransitPoint(transit));
                 }
             }
 
-            lock (_sync)
-            {
-                _exits = list;
-            }
+            _exits = list;
         }
 
-        private void EnsureInitialized()
-        {
-            if (_exits is null)
-            {
-                lock (_sync)
-                {
-                    if (_exits is null)
-                    {
-                        Init();
-                    }
-                }
-            }
-        }
 
-        /// <summary>
-        /// Refresh statuses for Exfil points. Uses a single Completed handler and reads all prepared addresses in one pass.
-        /// This avoids subscribing multiple Completed handlers and avoids per-loop closure pitfalls.
-        /// </summary>
         public void Refresh()
         {
             try
             {
-                EnsureInitialized();
+                if (_exits is null) // Initialize
+                    Init();
                 ArgumentNullException.ThrowIfNull(_exits, nameof(_exits));
-
-                var exfils = _exits.OfType<Exfil>().ToList();
-                if (exfils.Count == 0)
-                    return;
-
                 var map = Memory.CreateScatterMap();
-                var round = map.AddRound();
+                var round1 = map.AddRound();
 
-                // Prepare addresses and reads once
-                var addresses = new List<ulong>(exfils.Count);
-                foreach (var exfil in exfils)
+                for (int ix = 0; ix < _exits.Count; ix++)
                 {
-                    var addr = exfil.exfilBase + Offsets.ExfiltrationPoint._status;
-                    addresses.Add(addr);
-                    round.PrepareReadValue<int>(addr);
-                }
-
-                // Attach a single Completed handler that iterates the prepared addresses
-                round.Completed += (sender, completedRound) =>
-                {
-                    for (int i = 0; i < exfils.Count; i++)
+                    int i = ix;
+                    var entry = _exits[i];
+                    if (entry is Exfil exfil)
                     {
-                        var addr = addresses[i];
-                        if (completedRound.ReadValue<int>(addr, out var exfilStatus))
+                        round1.PrepareReadValue<int>(exfil.exfilBase + Offsets.ExfiltrationPoint._status);
+                        round1.Completed += (sender, s1) =>
                         {
-                            try
+                            if (s1.ReadValue<int>(exfil.exfilBase + Offsets.ExfiltrationPoint._status, out var exfilStatus))
                             {
-                                exfils[i].Update((Enums.EExfiltrationStatus)exfilStatus);
+                                exfil.Update((Enums.EExfiltrationStatus)exfilStatus);
                             }
-                            catch (Exception updateEx)
-                            {
-                                Debug.WriteLine($"[ExitManager] Update Exfil Error for addr 0x{addr:X}: {updateEx}");
-                            }
-                        }
+                        };
                     }
-                };
-
+                }
                 map.Execute();
             }
             catch (Exception ex)
@@ -225,8 +203,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
 
         #region IReadOnlyCollection
 
-        public int Count => Exits.Count;
-        public IEnumerator<IExitPoint> GetEnumerator() => Exits.GetEnumerator();
+        public int Count => _exits?.Count ?? 0;
+        public IEnumerator<IExitPoint> GetEnumerator() => _exits?.GetEnumerator() ?? Enumerable.Empty<IExitPoint>().GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         #endregion

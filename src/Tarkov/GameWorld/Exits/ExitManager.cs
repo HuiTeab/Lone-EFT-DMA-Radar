@@ -32,6 +32,7 @@ using LoneEftDmaRadar.Tarkov.Unity.Collections;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using System;
 using System.Collections;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -39,6 +40,7 @@ using System.Text.RegularExpressions;
 using TwitchLib.Api.Helix.Models.Entitlements;
 using TwitchLib.Api.Helix.Models.Raids;
 using VmmSharpEx.Extensions;
+using static LoneEftDmaRadar.Tarkov.Unity.UnitySDK;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
 {
@@ -96,6 +98,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
             {
                 var namePtr = Memory.ReadPtrChain(exfilAddr, false, new[] { Offsets.ExfiltrationPoint.Settings, Offsets.ExitTriggerSettings.Name });
                 var exfilName = Memory.ReadUnityString(namePtr)?.Trim();
+
+                var transformInternal = Memory.ReadPtrChain(exfilAddr, false, UnityOffsets.TransformChain);
+                var _position = new UnityTransform(transformInternal, false).UpdatePosition();
                 if (_isPMC)
                 {
                     ulong eligibleEntryPointsArray = Memory.ReadPtr(exfilAddr + Offsets.ExfiltrationPoint.EligibleEntryPoints, false);
@@ -134,7 +139,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                             //{
                             //    Debug.WriteLine($"[ExitManager] Exfil Eligible Entry Point Error: {ex}");
                             //}
-                            var exfil = new Exfil(exfilAddr, exfilName, _mapId, _isPMC);
+                            var exfil = new Exfil(exfilAddr, exfilName, _mapId, _isPMC, _position);
                             list.Add(exfil);
                         }
                     }
@@ -145,7 +150,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                     using var eligibleIdsList = UnityList<ulong>.Create(eligibleIdsAddr, false);
                     if (eligibleIdsList.Count > 0)
                     {
-                        var exfil = new Exfil(exfilAddr, exfilName, _mapId, _isPMC);
+                        var exfil = new Exfil(exfilAddr, exfilName, _mapId, _isPMC, _position);
                         list.Add(exfil);
                     }
 

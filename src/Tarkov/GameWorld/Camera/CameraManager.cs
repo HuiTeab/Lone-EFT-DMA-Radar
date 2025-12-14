@@ -49,23 +49,23 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
 
         private static readonly TimeSpan RaidStartDelay = TimeSpan.FromSeconds(3);
 
-        //public CameraManager()
-        //{
-        //    if (_current != null)
-        //    {
-        //        Debug.WriteLine("[CameraManager] WARNING: Duplicate CameraManager constructed; using existing instance.");
-        //        return;
-        //    }
+        public CameraManager()
+        {
+            if (_current != null)
+            {
+                Debug.WriteLine("[CameraManager] WARNING: Duplicate CameraManager constructed; using existing instance.");
+                return;
+            }
 
-        //    _current = this;
-        //    Memory.CameraManager = this;
+            _current = this;
+            Memory.CameraManager = this;
 
-        //    Debug.WriteLine("=== CameraManager Initialization ===");
-        //    Debug.WriteLine($"Unity Base: 0x{Memory.UnityBase:X}");
-        //    Debug.WriteLine($"AllCameras Offset: 0x{UnitySDK.UnityOffsets.AllCameras:X}");
+            Debug.WriteLine("=== CameraManager Initialization ===");
+            Debug.WriteLine($"Unity Base: 0x{Memory.UnityBase:X}");
+            Debug.WriteLine($"AllCameras Offset: 0x{UnitySDK.UnityOffsets.AllCameras:X}");
 
-        //    StartInitThread();
-        //}
+            StartInitThread();
+        }
 
         /// <summary>
         /// Cleanly stops the initialization / monitoring thread.

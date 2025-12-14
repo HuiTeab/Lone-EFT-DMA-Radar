@@ -34,8 +34,8 @@ namespace LoneEftDmaRadar.Tarkov.Unity
     {
         public readonly struct UnityOffsets
         {
-            public const uint GameObjectManager = 0x1A208D8;
-            public const uint AllCameras = 0x19F0100;
+            public const uint GameObjectManager = 0x1A23EF8;
+            public const uint AllCameras = 0x19F3040;
 
             public const uint GameObject_ObjectClassOffset = 0x80;
             public const uint GameObject_ComponentsOffset = 0x58;

@@ -79,10 +79,10 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
         public QuestManager QuestManager { get; }
         //public IReadOnlyList<IExitPoint> Exits { get; }
         public IReadOnlyList<IWorldHazard> Hazards { get; }
-        //public CameraManager CameraManager { get; private set; }
+        public CameraManager CameraManager { get; private set; }
         public IReadOnlyCollection<IExitPoint> Exits => _exfilManager;
 
-        //private readonly MemWritesManager _memWritesManager;
+        private readonly MemWritesManager _memWritesManager;
 
         private LocalGameWorld() { }
 
@@ -127,26 +127,26 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 _exfilManager = new(localGameWorld, mapID, _rgtPlayers.LocalPlayer);
                 Hazards = GetHazards(MapID);
 
-                //_t4 = new WorkerThread()
-                //{
-                //    Name = "Fast Worker",
-                //    ThreadPriority = ThreadPriority.AboveNormal,
-                //    SleepDuration = TimeSpan.FromMilliseconds(20)
-                //};
-                //_t4.PerformWork += (s, e) => FastWorker(e.CancellationToken);
+                _t4 = new WorkerThread()
+                {
+                   Name = "Fast Worker",
+                   ThreadPriority = ThreadPriority.AboveNormal,
+                   SleepDuration = TimeSpan.FromMilliseconds(20)
+                };
+                _t4.PerformWork += (s, e) => FastWorker(e.CancellationToken);
 
 
-                //_memWritesManager = new MemWritesManager();
-                //_memWritesManager.OnRaidStart();
+                _memWritesManager = new MemWritesManager();
+                _memWritesManager.OnRaidStart();
 
-                //_t5 = new WorkerThread()
-                //{
-                //    Name = "MemWrites Worker",
-                //    ThreadPriority = ThreadPriority.Normal,
-                //    SleepDuration = TimeSpan.FromMilliseconds(10),
-                //    SleepMode = WorkerThreadSleepMode.DynamicSleep
-                //};
-                //_t5.PerformWork += MemWritesWorker_PerformWork;
+                _t5 = new WorkerThread()
+                {
+                   Name = "MemWrites Worker",
+                   ThreadPriority = ThreadPriority.Normal,
+                   SleepDuration = TimeSpan.FromMilliseconds(10),
+                   SleepMode = WorkerThreadSleepMode.DynamicSleep
+                };
+                _t5.PerformWork += MemWritesWorker_PerformWork;
             }
             catch
             {
@@ -196,8 +196,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
             _t1.Start();
             _t2.Start();
             _t3.Start();
-            //_t4.Start();
-            //_t5.Start();
+            _t4.Start();
+            _t5.Start();
 
         }
 
@@ -270,7 +270,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 ThrowIfRaidEnded();
                 if (MapID.Equals("tarkovstreets", StringComparison.OrdinalIgnoreCase) ||
                     MapID.Equals("woods", StringComparison.OrdinalIgnoreCase))
-                    TryAllocateBTR();
+                    //TryAllocateBTR();
                 _rgtPlayers.Refresh(); // Check for new players, add to list, etc.
             }
             catch (OperationCanceledException ex) // Raid Ended
@@ -435,75 +435,75 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
         #endregion
         #region Fast Thread T4
 
-        /// <summary>
-        /// Managed Thread that does Hands Manager / DMA Toolkit updates.
-        /// No long operations on this thread.
-        /// </summary>
-        //private void FastWorker(CancellationToken ct) // t4
-        //{
-        //    if (_disposed) return;
-        //    try
-        //    {
-        //        Debug.WriteLine("FastWorker thread starting...");
-        //        while (InRaid)
-        //        {
-        //            ct.ThrowIfCancellationRequested();
-        //            RefreshCameraManager();
-        //            Thread.Sleep(100);
-        //        }
-        //    }
-        //    catch (OperationCanceledException)
-        //    {
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Debug.WriteLine($"CRITICAL ERROR on FastWorker Thread: {ex}"); // Log CRITICAL error
-        //        Dispose(); // Game object is in a corrupted state --> Dispose
-        //    }
-        //    finally
-        //    {
-        //        Debug.WriteLine("FastWorker thread stopping...");
-        //    }
-        //}
-        //private void RefreshCameraManager()
-        //{
-        //    try
-        //    {
-        //        CameraManager ??= new();
-        //    }
-        //    catch
-        //    {
-        //        //LoneLogging.WriteLine($"ERROR Refreshing Cameras! {ex}");
-        //    }
-        //}
+        // / <summary>
+        // / Managed Thread that does Hands Manager / DMA Toolkit updates.
+        // / No long operations on this thread.
+        // / </summary>
+        private void FastWorker(CancellationToken ct) // t4
+        {
+           if (_disposed) return;
+           try
+           {
+               Debug.WriteLine("FastWorker thread starting...");
+               while (InRaid)
+               {
+                   ct.ThrowIfCancellationRequested();
+                   RefreshCameraManager();
+                   Thread.Sleep(100);
+               }
+           }
+           catch (OperationCanceledException)
+           {
+           }
+           catch (Exception ex)
+           {
+               Debug.WriteLine($"CRITICAL ERROR on FastWorker Thread: {ex}"); // Log CRITICAL error
+               Dispose(); // Game object is in a corrupted state --> Dispose
+           }
+           finally
+           {
+               Debug.WriteLine("FastWorker thread stopping...");
+           }
+        }
+        private void RefreshCameraManager()
+        {
+           try
+           {
+               CameraManager ??= new();
+           }
+           catch
+           {
+               //LoneLogging.WriteLine($"ERROR Refreshing Cameras! {ex}");
+           }
+        }
         #endregion
 
         #region MemWrites Thread T5
 
-        //private void MemWritesWorker_PerformWork(object sender, WorkerThreadArgs e)
-        //{
-        //    try
-        //    {
-        //        if (!App.Config.MemWrites.Enabled)
-        //        {
-        //            Thread.Sleep(100);
-        //            return;
-        //        }
+        private void MemWritesWorker_PerformWork(object sender, WorkerThreadArgs e)
+        {
+           try
+           {
+               if (!App.Config.MemWrites.Enabled)
+               {
+                   Thread.Sleep(100);
+                   return;
+               }
 
-        //        var localPlayer = LocalPlayer;
-        //        if (localPlayer == null)
-        //        {
-        //            Thread.Sleep(50);
-        //            return;
-        //        }
+               var localPlayer = LocalPlayer;
+               if (localPlayer == null)
+               {
+                   Thread.Sleep(50);
+                   return;
+               }
 
-        //        _memWritesManager.Apply(localPlayer);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Debug.WriteLine($"[MemWritesWorker] Error: {ex}");
-        //    }
-        //}
+               _memWritesManager.Apply(localPlayer);
+           }
+           catch (Exception ex)
+           {
+               Debug.WriteLine($"[MemWritesWorker] Error: {ex}");
+           }
+        }
 
         #endregion
 
@@ -544,6 +544,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 _t1?.Dispose();
                 _t2?.Dispose();
                 _t3?.Dispose();
+                _t4?.Dispose();
+                _t5?.Dispose();
             }
         }
 

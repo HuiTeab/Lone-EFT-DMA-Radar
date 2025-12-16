@@ -270,7 +270,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 ThrowIfRaidEnded();
                 if (MapID.Equals("tarkovstreets", StringComparison.OrdinalIgnoreCase) ||
                     MapID.Equals("woods", StringComparison.OrdinalIgnoreCase))
-                    //TryAllocateBTR();
+                    TryAllocateBTR();
                 _rgtPlayers.Refresh(); // Check for new players, add to list, etc.
             }
             catch (OperationCanceledException ex) // Raid Ended

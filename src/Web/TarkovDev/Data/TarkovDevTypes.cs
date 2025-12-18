@@ -1,36 +1,35 @@
 ﻿using LoneEftDmaRadar.Tarkov.GameWorld.Hazards;
 using LoneEftDmaRadar.Tarkov.GameWorld.Quests;
 using System.Collections.Frozen;
-using static LoneEftDmaRadar.Web.TarkovDev.Data.TarkovDevTypes;
 using static LoneEftDmaRadar.Web.TarkovDev.Data.TarkovDevTypes.TarkovDevDataQuery;
 
 namespace LoneEftDmaRadar.Web.TarkovDev.Data
 {
-    public sealed class TarkovDevData
-    {
-        [JsonPropertyName("lootContainers")]
-        [Obsolete("Raw Tarkov.Dev Data. Discarded after processing. Do not use.")]
-        public List<BasicDataElement> TarkovDevContainers { get; set; }
-
-        [JsonPropertyName("items")]
-        [Obsolete("Raw Tarkov.Dev Data. Discarded after processing. Do not use.")]
-        public List<ItemElement> TarkovDevItems { get; set; }
-
-        [JsonPropertyName("items_clean")]
-        public List<TarkovMarketItem> Items { get; set; }
-
-        [JsonPropertyName("maps")]
-        public List<MapElement> Maps { get; set; }
-
-        [JsonPropertyName("playerLevels")]
-        public List<PlayerLevelElement> PlayerLevels { get; set; }
-
-        [JsonPropertyName("tasks")]
-        public List<TaskElement> Tasks { get; set; }
-    }
-
     public static class TarkovDevTypes
     {
+        public sealed class TarkovDevData
+        {
+            [JsonPropertyName("lootContainers")]
+            [Obsolete("Raw Tarkov.Dev Data. Discarded after processing. Do not use.")]
+            public List<BasicDataElement> TarkovDevContainers { get; set; }
+
+            [JsonPropertyName("items")]
+            [Obsolete("Raw Tarkov.Dev Data. Discarded after processing. Do not use.")]
+            public List<ItemElement> TarkovDevItems { get; set; }
+
+            [JsonPropertyName("items_clean")]
+            public List<TarkovMarketItem> Items { get; set; }
+
+            [JsonPropertyName("maps")]
+            public List<MapElement> Maps { get; set; }
+
+            [JsonPropertyName("playerLevels")]
+            public List<PlayerLevelElement> PlayerLevels { get; set; }
+
+            [JsonPropertyName("tasks")]
+            public List<TaskElement> Tasks { get; set; }
+        }
+
         public sealed class TarkovDevDataQuery
         {
             [JsonPropertyName("warnings")]

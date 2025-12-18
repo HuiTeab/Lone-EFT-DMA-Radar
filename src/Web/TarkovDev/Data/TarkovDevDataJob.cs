@@ -63,7 +63,7 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
         /// Retrieves updated Tarkov data from the Tarkov Dev GraphQL API and formats it into a JSON string.
         /// </summary>
         /// <returns>Json string of <see cref="OutgoingTarkovMarketData"/>.</returns>
-        public static async Task<TarkovDevData> GetUpdatedDataAsync()
+        public static async Task<TarkovDevTypes.TarkovDevData> GetUpdatedDataAsync()
         {
             var json = await TarkovDevGraphQLApi.GetTarkovDataAsync();
             var data = JsonSerializer.Deserialize<TarkovDevTypes.TarkovDevDataQuery>(json, App.JsonOptions) ??

@@ -322,7 +322,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"***** CRITICAL RENDER ERROR: {ex}");
+                Logging.WriteLine($"***** CRITICAL RENDER ERROR: {ex}");
             }
             finally
             {

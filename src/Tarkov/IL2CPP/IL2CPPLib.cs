@@ -127,8 +127,11 @@ namespace LoneEftDmaRadar.Tarkov.IL2CPP
             }
             catch (Exception ex)
             {
-                Logging.WriteLine($"Signature scan failed for TypeInfoDefinitionTable: {ex}. Falling back to static offsets.");
-                ulong staticOffset = module.vaBase + IL2CPPOffsets.TypeInfoDefinitionTable;
+                // Local sig failed. Fall back to Offsets.Special.TypeInfoTableRva — the IL2CPP
+                // dumper resolves this dynamically via three additional sig patterns before
+                // IL2CPPLib.Init runs, so it's typically valid even when the local sig is stale.
+                Logging.WriteLine($"Signature scan failed for TypeInfoDefinitionTable: {ex}. Falling back to dumper-resolved RVA 0x{Offsets.Special.TypeInfoTableRva:X}.");
+                ulong staticOffset = module.vaBase + Offsets.Special.TypeInfoTableRva;
                 gTypeInfoDefinitionTable = Memory.ReadValue<ulong>(staticOffset);
                 gTypeInfoDefinitionTable.ThrowIfInvalidUserVA(nameof(gTypeInfoDefinitionTable));
             }

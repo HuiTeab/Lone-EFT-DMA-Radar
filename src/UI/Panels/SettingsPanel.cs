@@ -126,6 +126,14 @@ namespace LoneEftDmaRadar.UI.Panels
                 }
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip("Open the folder containing configuration files");
+                ImGui.SameLine();
+                if (ImGui.Button("Re-dump IL2CPP Offsets"))
+                {
+                    LoneEftDmaRadar.Tarkov.IL2CPP.Dumper.Il2CppDumper.ResetForRedump();
+                    LoneEftDmaRadar.Tarkov.IL2CPP.Dumper.Il2CppDumper.Dump();
+                }
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("Wipe the IL2CPP offset cache and re-resolve all offsets from the running game (useful after a Tarkov patch)");
 
                 ImGui.SeparatorText("Display Settings");
 

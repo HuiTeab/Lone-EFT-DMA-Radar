@@ -37,6 +37,7 @@ namespace LoneEftDmaRadar.DMA
 
         public static string MapID => Game?.MapID;
         public static ulong UnityBase { get; private set; }
+        public static ulong GameAssemblyBase { get; private set; }
 
         public static IReadOnlyCollection<AbstractPlayer> Players => Game?.Players;
         public static IReadOnlyCollection<IExplosiveItem> Explosives => Game?.Explosives;
@@ -287,6 +288,7 @@ namespace LoneEftDmaRadar.DMA
         private static void MemDMA_ProcessStopped(object sender, EventArgs e)
         {
             UnityBase = default;
+            GameAssemblyBase = default;
             _pid = default;
         }
 
@@ -337,6 +339,22 @@ namespace LoneEftDmaRadar.DMA
         {
             var unityBase = _vmm.ProcessGetModuleBase(_pid, "UnityPlayer.dll");
             unityBase.ThrowIfInvalidUserVA(nameof(unityBase));
+            GameAssemblyBase = _vmm.ProcessGetModuleBase(_pid, "GameAssembly.dll");
+
+            // Run the IL2CPP offset dumper FIRST. It has its own multi-sig TypeInfoTable resolver
+            // (independent of IL2CPPLib's stale single sig), and updates Offsets.Special.TypeInfoTableRva
+            // + all hardcoded Offsets fields to match the current game build. IL2CPPLib.Init's
+            // fallback path then picks up the dumper-resolved RVA so even a stale IL2CPPLib sig
+            // still produces a working type table.
+            try
+            {
+                LoneEftDmaRadar.Tarkov.IL2CPP.Dumper.Il2CppDumper.Dump();
+            }
+            catch (Exception ex)
+            {
+                Logging.WriteLine($"IL2CPP Dumper failed (continuing with compiled-in offsets): {ex}");
+            }
+
             try
             {
                 IL2CPPLib.Init(_vmm, _pid);
@@ -607,6 +625,61 @@ namespace LoneEftDmaRadar.DMA
         public static ulong FindSignature(string signature)
         {
             return _vmm.FindSignature(_pid, signature, "UnityPlayer.dll");
+        }
+
+        /// <summary>
+        /// Return every match of <paramref name="signature"/> within <paramref name="moduleName"/>.
+        /// Capped at <paramref name="maxMatches"/>. Used by the IL2CPP dumper's TypeInfoTable resolver
+        /// which validates each match individually.
+        /// </summary>
+        public static ulong[] FindSignaturesAll(string signature, string moduleName, int maxMatches = 64)
+        {
+            if (!_vmm.Map_GetModuleFromName(_pid, moduleName, out var module))
+                return [];
+
+            ulong rangeStart = module.vaBase;
+            ulong rangeEnd = module.vaBase + module.cbImageSize;
+            var matches = new List<ulong>(Math.Min(maxMatches, 16));
+
+            while (matches.Count < maxMatches && rangeStart < rangeEnd)
+            {
+                ulong hit;
+                try
+                {
+                    hit = _vmm.FindSignature(_pid, signature, rangeStart, rangeEnd);
+                }
+                catch
+                {
+                    break;
+                }
+                if (hit == 0 || hit < rangeStart || hit >= rangeEnd) break;
+                matches.Add(hit);
+                rangeStart = hit + 1; // resume one byte past the match
+            }
+
+            return matches.ToArray();
+        }
+
+        /// <summary>
+        /// Reads the PE TimeDateStamp + SizeOfImage from a loaded module. Used as a cheap
+        /// fingerprint to detect when the GameAssembly.dll binary has changed between radar runs.
+        /// Returns (0,0) on any read failure.
+        /// </summary>
+        public static (uint Timestamp, uint SizeOfImage) ReadPeFingerprint(ulong moduleBase)
+        {
+            if (moduleBase == 0) return (0, 0);
+            try
+            {
+                uint eLfanew = ReadValue<uint>(moduleBase + 0x3C, false);
+                if (eLfanew == 0 || eLfanew > 0x1000) return (0, 0);
+                uint ts = ReadValue<uint>(moduleBase + eLfanew + 8, false);
+                uint sz = ReadValue<uint>(moduleBase + eLfanew + 0x50, false);
+                return (ts, sz);
+            }
+            catch
+            {
+                return (0, 0);
+            }
         }
 
         /// <summary>
